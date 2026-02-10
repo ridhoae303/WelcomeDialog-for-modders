@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#004EFF"
+    tools:context="com.ridhoae303.app.main.MainActivity">
+    
+    <ImageView
+        android:id="@+id/background_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:contentDescription="@string/app_name" />
+        
+    <com.ridhoae303.app.main.MainActivity.RainbowDrawingView
+        android:id="@+id/rainbow_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layerType="hardware" />
+</RelativeLayout>
