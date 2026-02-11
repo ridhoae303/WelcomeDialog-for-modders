@@ -9,6 +9,15 @@
 
 > **🎦 Please see the preview dialog at /preview.**
 
+# Galery
+
+## 📱 Default Rotation (Portrait)
+![Screenshot_2026-02-11-01-55-38-40_dc014ea3a40491a56aed4b1ec4b1a9da](https://github.com/user-attachments/assets/7a17c47e-42ee-4453-bb8f-b48f72345ab9)
+## 💻 Landscape Rotation
+![Screenshot_2026-02-11-01-56-10-47_dc014ea3a40491a56aed4b1ec4b1a9da](https://github.com/user-attachments/assets/83a89e57-e641-4f16-befa-0ff3c2fdcedd)
+## 🌈 Touch Rainbow View
+![Screenshot_2026-02-11-01-56-56-77_dc014ea3a40491a56aed4b1ec4b1a9da](https://github.com/user-attachments/assets/ff2c2314-bab2-4aff-90c2-fb623ff87bad)
+
 ## Project Status:
 - Newly created
 - Experimental
@@ -108,4 +117,5 @@ This project is licensed under the GNU General Public License v3.
 
 ### Note from me:
 > Small project, serious intent. Created for learning, experimenting, and sharing.
+
 
