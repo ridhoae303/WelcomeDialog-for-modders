@@ -50,6 +50,14 @@ This project is suitable if you are:
 
 7. Call the dialog via register p0
 
+8. This is the method call address if you edit directly from smali/dex:
+
+### [Default]
+> **invoke-static {p0}, Lcom/takane/app/TakaneActivity;->yuuka(Landroid/content/Context;)V**
+
+### [ProGuard]
+> **invoke-static {p0}, Lcom/takane/app/TakaneActivity;->a(Landroid/content/Context;)V**
+
 If done correctly, the dialog will appear according to the lifecycle that was called.
 
 ## 🐞 Bug Fixes
@@ -100,3 +108,4 @@ This project is licensed under the GNU General Public License v3.
 
 ### Note from me:
 > Small project, serious intent. Created for learning, experimenting, and sharing.
+
