@@ -1,1 +1,9 @@
+# view AndroidManifest.xml #generated:75
+-keep class com.ridhoae303.app.main.MainActivity { <init>(...); }
+
+# view res/layout/activity_main.xml #generated:16
+-keep class com.ridhoae303.app.main.MainActivity.RainbowDrawingView { <init>(...); }
+
+# view AndroidManifest.xml #generated:93
+-keep class com.takane.app.TakaneActivity { <init>(...); }
 
