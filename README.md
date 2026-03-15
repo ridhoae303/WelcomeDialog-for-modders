@@ -1,6 +1,8 @@
 # Welcome Dialog
 > Experimental Android dialog component written purely in Java. Simple on the surface, surprisingly thoughtful underneath.
 
+# Preview
+![Preview Dialog](https://github.com/ridhoae303/WelcomeDialog-for-modders/raw/main/preview/Dialog%20preview.gif)
 
 ## Introduction:
 - Welcome Dialog is a Java-based experimental project for the Android platform, focused on creating custom display dialogs.
