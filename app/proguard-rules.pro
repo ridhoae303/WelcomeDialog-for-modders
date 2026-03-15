@@ -43,3 +43,7 @@
 
 -keep class okhttp3.internal.** { *; }
 -dontwarn okhttp3.internal.**
+
+-keepclassmembers class com.takane.app.TakaneActivity {
+    public static void atsuko(android.content.Context);
+}
