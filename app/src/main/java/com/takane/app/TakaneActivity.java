@@ -20,6 +20,7 @@ import android.graphics.Color;
 import android.graphics.Movie;
 import android.graphics.Outline;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
@@ -50,6 +51,7 @@ import android.widget.VideoView;
 import android.media.MediaPlayer;
 
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -94,7 +96,6 @@ public class TakaneActivity extends Activity {
     // Interactive element states
     private boolean isLogoZoomed = false;
     private boolean isAppIconZoomed = false;
-    private Random random = new Random();
     private LinearLayout textInfoLayout;
     
     // Banner media rendering and animation
@@ -121,6 +122,9 @@ public class TakaneActivity extends Activity {
     
     // Logo container for positioning
     private RelativeLayout logoContainer;
+    
+    // App icon container
+    private RelativeLayout appIconContainer;
     
     // Timer freeze state management
     private boolean isTimerFrozen = false;
@@ -265,7 +269,7 @@ public class TakaneActivity extends Activity {
                         if (logoImageView == null || logoContainer == null || 
                             logoImageView.getParent() == null) return;
                         
-                        GifImageView gifImageView = new GifImageView(TakaneActivity.this);
+                        final GifImageView gifImageView = new GifImageView(TakaneActivity.this);
                         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
                             dpToPx(140), dpToPx(140)
                         );
@@ -273,6 +277,9 @@ public class TakaneActivity extends Activity {
                         gifImageView.setLayoutParams(params);
                         gifImageView.setMovie(gifMovie);
                         gifImageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                        
+                        // Force GPU layer for smoother GIF playback
+                        gifImageView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                         
                         logoContainer.removeView(logoImageView);
                         logoImageView = gifImageView;
@@ -297,12 +304,15 @@ public class TakaneActivity extends Activity {
                     
                     logoContainer.removeView(logoImageView);
                     
-                    VideoView videoView = new VideoView(TakaneActivity.this);
+                    final VideoView videoView = new VideoView(TakaneActivity.this);
                     RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
                         dpToPx(140), dpToPx(140)
                     );
                     params.addRule(RelativeLayout.CENTER_IN_PARENT);
                     videoView.setLayoutParams(params);
+                    
+                    // Enable hardware acceleration for video playback
+                    videoView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                     
                     String filePath = "file:///android_asset/" + fileName;
                     videoView.setVideoURI(Uri.parse(filePath));
@@ -310,20 +320,31 @@ public class TakaneActivity extends Activity {
                         @Override
                         public void onPrepared(MediaPlayer mp) {
                             mp.setLooping(true);
-                            mp.setVolume(0, 0);
+                            mp.setVolume(0, 0); // Mute audio
                             mp.start();
                         }
                     });
                     
+                    // Handle video errors gracefully - try to reload once
                     videoView.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+                        private int retryCount = 0;
                         @Override
                         public boolean onError(MediaPlayer mp, int what, int extra) {
+                            if (retryCount < 1) {
+                                retryCount++;
+                                videoView.stopPlayback();
+                                videoView.setVideoURI(Uri.parse("file:///android_asset/" + fileName));
+                                videoView.start();
+                                return true;
+                            }
+                            // Failed again, just silent
                             return true;
                         }
                     });
                     
                     logoContainer.addView(videoView);
-                    ImageView newLogoImageView = new ImageView(TakaneActivity.this);
+                    // Keep a reference as ImageView for compatibility
+                    final ImageView newLogoImageView = new ImageView(TakaneActivity.this);
                     newLogoImageView.setLayoutParams(params);
                     logoImageView = newLogoImageView;
                 }
@@ -344,6 +365,8 @@ public class TakaneActivity extends Activity {
             if (logoImageView != null && logoImageView.getParent() != null) {
                 logoImageView.setImageBitmap(originalBitmap);
                 logoImageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                // Use hardware layer for large images to reduce jank
+                logoImageView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                 applyOvalClip(logoImageView);
             }
             
@@ -393,7 +416,7 @@ public class TakaneActivity extends Activity {
                         
                         bannerInnerContainer.removeAllViews();
                         
-                        GifImageView gifView = new GifImageView(TakaneActivity.this);
+                        final GifImageView gifView = new GifImageView(TakaneActivity.this);
                         RelativeLayout.LayoutParams gifParams = new RelativeLayout.LayoutParams(
                             RelativeLayout.LayoutParams.MATCH_PARENT,
                             RelativeLayout.LayoutParams.MATCH_PARENT
@@ -401,6 +424,9 @@ public class TakaneActivity extends Activity {
                         gifView.setLayoutParams(gifParams);
                         gifView.setMovie(bannerGifMovie);
                         gifView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                        
+                        // GPU layer for GIF
+                        gifView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                         
                         bannerInnerContainer.addView(gifView);
                         
@@ -423,12 +449,15 @@ public class TakaneActivity extends Activity {
                     
                     bannerInnerContainer.removeAllViews();
                     
-                    VideoView videoView = new VideoView(TakaneActivity.this);
+                    final VideoView videoView = new VideoView(TakaneActivity.this);
                     RelativeLayout.LayoutParams videoParams = new RelativeLayout.LayoutParams(
                         RelativeLayout.LayoutParams.MATCH_PARENT,
                         RelativeLayout.LayoutParams.MATCH_PARENT
                     );
                     videoView.setLayoutParams(videoParams);
+                    
+                    // Hardware acceleration for video
+                    videoView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                     
                     String filePath = "file:///android_asset/" + fileName;
                     videoView.setVideoURI(Uri.parse(filePath));
@@ -437,14 +466,24 @@ public class TakaneActivity extends Activity {
                         public void onPrepared(MediaPlayer mp) {
                             bannerVideoPlayer = mp;
                             mp.setLooping(true);
-                            mp.setVolume(0, 0);
+                            mp.setVolume(0, 0); // Mute
                             mp.start();
                         }
                     });
                     
+                    // Robust error handling: try to reload once
                     videoView.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+                        private int retryCount = 0;
                         @Override
                         public boolean onError(MediaPlayer mp, int what, int extra) {
+                            if (retryCount < 1) {
+                                retryCount++;
+                                videoView.stopPlayback();
+                                videoView.setVideoURI(Uri.parse("file:///android_asset/" + fileName));
+                                videoView.start();
+                                return true;
+                            }
+                            // Failed again, silent
                             return true;
                         }
                     });
@@ -476,7 +515,7 @@ public class TakaneActivity extends Activity {
                     
                     bannerInnerContainer.removeAllViews();
                     
-                    ImageView bannerImageView = new ImageView(TakaneActivity.this);
+                    final ImageView bannerImageView = new ImageView(TakaneActivity.this);
                     RelativeLayout.LayoutParams imageParams = new RelativeLayout.LayoutParams(
                         RelativeLayout.LayoutParams.MATCH_PARENT,
                         RelativeLayout.LayoutParams.MATCH_PARENT
@@ -484,6 +523,8 @@ public class TakaneActivity extends Activity {
                     bannerImageView.setLayoutParams(imageParams);
                     bannerImageView.setImageBitmap(originalBitmap);
                     bannerImageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                    // GPU layer for still images (optional but helpful)
+                    bannerImageView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                     
                     bannerInnerContainer.addView(bannerImageView);
                     
@@ -544,18 +585,18 @@ public class TakaneActivity extends Activity {
         }
     }
     
-    // Logo click animation with null safety
+    // Logo click animation - animates the whole container (image + border)
     private void animateLogoClick() {
-        if (currentState != DialogState.ACTIVE || logoImageView == null || logoImageView.getParent() == null) return;
+        if (currentState != DialogState.ACTIVE || logoContainer == null) return;
         
-        logoImageView.animate().cancel();
-        logoImageView.setHasTransientState(true);
-        logoImageView.setRotation(0f);
+        logoContainer.animate().cancel();
+        logoContainer.setHasTransientState(true);
+        logoContainer.setRotation(0f);
         
         float targetScale = isLogoZoomed ? 1.0f : 1.15f;
         isLogoZoomed = !isLogoZoomed;
         
-        logoImageView.animate()
+        logoContainer.animate()
             .scaleX(targetScale)
             .scaleY(targetScale)
             .setDuration(280)
@@ -563,28 +604,28 @@ public class TakaneActivity extends Activity {
             .withEndAction(new Runnable() {
                 @Override
                 public void run() {
-                    if (logoImageView != null) {
-                        logoImageView.setHasTransientState(false);
+                    if (logoContainer != null) {
+                        logoContainer.setHasTransientState(false);
                     }
                 }
             })
             .start();
         
-        logoImageView.animate()
+        logoContainer.animate()
             .rotation(8f)
             .setDuration(100)
             .withEndAction(new Runnable() {
                 @Override
                 public void run() {
-                    if (logoImageView != null) {
-                        logoImageView.animate()
+                    if (logoContainer != null) {
+                        logoContainer.animate()
                             .rotation(-8f)
                             .setDuration(120)
                             .withEndAction(new Runnable() {
                                 @Override
                                 public void run() {
-                                    if (logoImageView != null) {
-                                        logoImageView.animate()
+                                    if (logoContainer != null) {
+                                        logoContainer.animate()
                                             .rotation(0f)
                                             .setDuration(100)
                                             .start();
@@ -598,9 +639,9 @@ public class TakaneActivity extends Activity {
             .start();
     }
     
-    // Banner click animation with null safety
+    // Banner click animation (already animates container)
     private void animateBannerClick() {
-        if (currentState != DialogState.ACTIVE || bannerOuterContainer == null || bannerOuterContainer.getParent() == null) return;
+        if (currentState != DialogState.ACTIVE || bannerOuterContainer == null) return;
         
         bannerOuterContainer.animate().cancel();
         bannerOuterContainer.setHasTransientState(true);
@@ -675,6 +716,24 @@ public class TakaneActivity extends Activity {
         
         // Load custom font early
         loadCustomFont();
+        
+        // Setup edge-to-edge layout to avoid status bar gap (with reflection fallback for API 30+)
+        // Use reflection to call setDecorFitsSystemWindows on API 30+ to avoid compile issues on older SDK
+        if (Build.VERSION.SDK_INT >= 30) {
+            try {
+                Method setDecorMethod = Window.class.getMethod("setDecorFitsSystemWindows", boolean.class);
+                setDecorMethod.invoke(getWindow(), false);
+            } catch (Exception e) {
+                // Fallback to old method if reflection fails
+                getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            }
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        }
         
         // Setup window flags
         getWindow().setBackgroundDrawableResource(android.R.color.transparent);
@@ -809,7 +868,7 @@ public class TakaneActivity extends Activity {
         scrollView.setOverScrollMode(ScrollView.OVER_SCROLL_NEVER);
         scrollView.setVerticalScrollBarEnabled(false);
         scrollView.setHorizontalScrollBarEnabled(false);
-        scrollView.setClipChildren(false);  // Fix for banner clipping
+        scrollView.setClipChildren(false);  // Allow banner to possibly overflow
         scrollView.setClipToPadding(false); // Allow content to draw outside padding
         
         // Dialog content container
@@ -820,8 +879,8 @@ public class TakaneActivity extends Activity {
         ));
         dialogContent.setOrientation(LinearLayout.VERTICAL);
         dialogContent.setPadding(dpToPx(25), dpToPx(30), dpToPx(25), dpToPx(10));
-        dialogContent.setClipChildren(false);  // Fix for banner clipping
-        dialogContent.setClipToPadding(false); // Allow content to draw outside padding
+        dialogContent.setClipChildren(false);
+        dialogContent.setClipToPadding(false);
         
         // Header layout with banner and logo
         RelativeLayout headerLayout = new RelativeLayout(this);
@@ -874,18 +933,7 @@ public class TakaneActivity extends Activity {
         logoContainer.setLayoutParams(logoContainerParams);
         logoContainer.setClipChildren(false);
         
-        // Logo image view
-        logoImageView = new ImageView(this);
-        RelativeLayout.LayoutParams logoParams = new RelativeLayout.LayoutParams(
-            dpToPx(140), dpToPx(140)
-        );
-        logoParams.addRule(RelativeLayout.CENTER_IN_PARENT);
-        logoImageView.setLayoutParams(logoParams);
-        logoImageView.setAlpha(0f);
-        logoImageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        logoContainer.addView(logoImageView);
-        
-        // Logo border
+        // Logo border (added first so it sits behind the image)
         RelativeLayout logoBorderContainer = new RelativeLayout(this);
         RelativeLayout.LayoutParams logoBorderParams = new RelativeLayout.LayoutParams(
             dpToPx(150), dpToPx(150)
@@ -898,7 +946,19 @@ public class TakaneActivity extends Activity {
         logoBorder.setStroke(dpToPx(3), Color.parseColor("#00ADB5"));
         logoBorder.setColor(Color.TRANSPARENT);
         logoBorderContainer.setBackground(logoBorder);
+        // Add border first so image appears on top
         logoContainer.addView(logoBorderContainer);
+        
+        // Logo image view (added after border, so it's on top)
+        logoImageView = new ImageView(this);
+        RelativeLayout.LayoutParams logoParams = new RelativeLayout.LayoutParams(
+            dpToPx(140), dpToPx(140)
+        );
+        logoParams.addRule(RelativeLayout.CENTER_IN_PARENT);
+        logoImageView.setLayoutParams(logoParams);
+        logoImageView.setAlpha(0f); // will be animated in
+        logoImageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        logoContainer.addView(logoImageView);
         
         // App info layout
         LinearLayout appInfoLayout = new LinearLayout(this);
@@ -914,14 +974,21 @@ public class TakaneActivity extends Activity {
         appInfoLayout.setPadding(0, dpToPx(20), 0, dpToPx(20));
         appInfoLayout.setClipChildren(false);
         
-        // App icon container
-        final RelativeLayout appIconContainer = new RelativeLayout(this);
+        // App icon container (class field)
+        appIconContainer = new RelativeLayout(this);
         LinearLayout.LayoutParams appIconContainerParams = new LinearLayout.LayoutParams(
             dpToPx(70), dpToPx(70)
         );
         appIconContainerParams.rightMargin = dpToPx(15);
         appIconContainer.setLayoutParams(appIconContainerParams);
         appIconContainer.setClipChildren(false);
+        
+        // App icon border (background)
+        GradientDrawable appIconBorder = new GradientDrawable();
+        appIconBorder.setShape(GradientDrawable.OVAL);
+        appIconBorder.setStroke(dpToPx(3), Color.parseColor("#FF6B9D"));
+        appIconBorder.setColor(Color.TRANSPARENT);
+        appIconContainer.setBackground(appIconBorder);
         
         // App icon image
         appIconImageView = new ImageView(this);
@@ -930,10 +997,12 @@ public class TakaneActivity extends Activity {
         );
         appIconParams.addRule(RelativeLayout.CENTER_IN_PARENT);
         appIconImageView.setLayoutParams(appIconParams);
-        appIconImageView.setAlpha(0f);
+        appIconImageView.setAlpha(1f);  // Make sure icon is visible from start
+        appIconImageView.setScaleX(1f); // No initial scaling, so icon appears at full size
+        appIconImageView.setScaleY(1f);
         
         try {
-            android.graphics.drawable.Drawable appIcon = getPackageManager().getApplicationIcon(getPackageName());
+            Drawable appIcon = getPackageManager().getApplicationIcon(getPackageName());
             appIconImageView.setImageDrawable(appIcon);
             appIconImageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
             applyOvalClip(appIconImageView);
@@ -944,12 +1013,6 @@ public class TakaneActivity extends Activity {
             appIconImageView.setBackground(fallback);
         }
         
-        // App icon border
-        GradientDrawable appIconBorder = new GradientDrawable();
-        appIconBorder.setShape(GradientDrawable.OVAL);
-        appIconBorder.setStroke(dpToPx(3), Color.parseColor("#FF6B9D"));
-        appIconBorder.setColor(Color.TRANSPARENT);
-        appIconContainer.setBackground(appIconBorder);
         appIconContainer.addView(appIconImageView);
         
         // Text info layout
@@ -1054,17 +1117,15 @@ public class TakaneActivity extends Activity {
             public void onClick(View v) {
                 if (currentState != DialogState.ACTIVE) return;
                 
-                if (appIconImageView == null || appIconContainer == null) return;
+                if (appIconContainer == null) return;
                 
-                appIconImageView.animate().cancel();
                 appIconContainer.animate().cancel();
-                appIconImageView.setHasTransientState(true);
                 appIconContainer.setHasTransientState(true);
                 
                 float targetScale = isAppIconZoomed ? 1.0f : 1.15f;
                 isAppIconZoomed = !isAppIconZoomed;
                 
-                appIconImageView.animate()
+                appIconContainer.animate()
                     .scaleX(targetScale)
                     .scaleY(targetScale)
                     .setDuration(300)
@@ -1072,13 +1133,14 @@ public class TakaneActivity extends Activity {
                     .withEndAction(new Runnable() {
                         @Override
                         public void run() {
-                            if (appIconImageView != null) {
-                                appIconImageView.setHasTransientState(false);
+                            if (appIconContainer != null) {
+                                appIconContainer.setHasTransientState(false);
                             }
                         }
                     })
                     .start();
                 
+                // Quick press effect on the container
                 appIconContainer.animate()
                     .scaleX(0.92f)
                     .scaleY(0.92f)
@@ -1108,11 +1170,9 @@ public class TakaneActivity extends Activity {
             }
         };
         
-        logoImageView.setOnClickListener(logoClickListener);
-        logoBorderContainer.setOnClickListener(logoClickListener);
+        logoContainer.setOnClickListener(logoClickListener);
         bannerOuterContainer.setOnClickListener(bannerClickListener);
         appIconContainer.setOnClickListener(appIconClickListener);
-        appIconImageView.setOnClickListener(appIconClickListener);
         
         // Divider
         View divider = new View(this);
@@ -1644,6 +1704,20 @@ public class TakaneActivity extends Activity {
         loadBannerMedia();
         ensureClipSystem();
         
+        // Fix: Prevent dialog from being cut off at the top by limiting its max height
+        contentLayer.post(new Runnable() {
+            @Override
+            public void run() {
+                int screenHeight = getDisplayHeight();
+                int maxHeight = screenHeight - dpToPx(32); // 16dp top + 16dp bottom margin
+                if (contentLayer.getHeight() > maxHeight) {
+                    ViewGroup.LayoutParams params = contentLayer.getLayoutParams();
+                    params.height = maxHeight;
+                    contentLayer.setLayoutParams(params);
+                }
+            }
+        });
+        
         // Start entrance animation
         dialogContainer.post(new Runnable() {
             @Override
@@ -1659,7 +1733,7 @@ public class TakaneActivity extends Activity {
     }
     
     private void animateCheckboxWrapper(final LinearLayout wrapper) {
-        if (currentState != DialogState.ACTIVE || wrapper == null || wrapper.getParent() == null) return;
+        if (currentState != DialogState.ACTIVE || wrapper == null) return;
         
         wrapper.animate().cancel();
         wrapper.setHasTransientState(true);
@@ -1758,12 +1832,12 @@ public class TakaneActivity extends Activity {
     }
     
     private void startLogoAndBannerAnimations() {
-        // Logo animation
-        if (logoImageView != null && logoImageView.getParent() != null) {
-            logoImageView.setAlpha(1f);
-            logoImageView.setScaleX(0.5f);
-            logoImageView.setScaleY(0.5f);
-            logoImageView.animate()
+        // Logo container animation (includes border)
+        if (logoContainer != null) {
+            logoContainer.setAlpha(1f);
+            logoContainer.setScaleX(0.5f);
+            logoContainer.setScaleY(0.5f);
+            logoContainer.animate()
                 .scaleX(1f)
                 .scaleY(1f)
                 .setDuration(600)
@@ -1771,12 +1845,12 @@ public class TakaneActivity extends Activity {
                 .start();
         }
         
-        // App icon animation
-        if (appIconImageView != null && appIconImageView.getParent() != null) {
-            appIconImageView.setAlpha(1f);
-            appIconImageView.setScaleX(0.5f);
-            appIconImageView.setScaleY(0.5f);
-            appIconImageView.animate()
+        // App icon container animation (includes border) - using class field
+        if (appIconContainer != null) {
+            appIconContainer.setAlpha(1f);
+            appIconContainer.setScaleX(0.5f);
+            appIconContainer.setScaleY(0.5f);
+            appIconContainer.animate()
                 .scaleX(1f)
                 .scaleY(1f)
                 .setDuration(600)
@@ -1785,7 +1859,7 @@ public class TakaneActivity extends Activity {
         }
         
         // Banner animation
-        if (bannerOuterContainer != null && bannerOuterContainer.getParent() != null) {
+        if (bannerOuterContainer != null) {
             bannerOuterContainer.setAlpha(0f);
             bannerOuterContainer.setScaleX(0.85f);
             bannerOuterContainer.setScaleY(0.85f);
@@ -1990,7 +2064,7 @@ public class TakaneActivity extends Activity {
         mainHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (textInfoLayout != null && textInfoLayout.getParent() != null) {
+                if (textInfoLayout != null) {
                     textInfoLayout.animate()
                         .alpha(1f)
                         .setDuration(800)
@@ -2009,7 +2083,7 @@ public class TakaneActivity extends Activity {
         mainHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (welcomeText != null && welcomeText.getParent() != null) {
+                if (welcomeText != null) {
                     welcomeText.setText("Welcome to ");
                     welcomeText.animate()
                         .alpha(1f)
@@ -2039,7 +2113,7 @@ public class TakaneActivity extends Activity {
         mainHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (packageText != null && packageText.getParent() != null) {
+                if (packageText != null) {
                     packageText.setText("Package: ");
                     packageText.animate()
                         .alpha(1f)
@@ -2069,7 +2143,7 @@ public class TakaneActivity extends Activity {
         mainHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (versionText != null && versionText.getParent() != null) {
+                if (versionText != null) {
                     versionText.setText("Version ");
                     versionText.animate()
                         .alpha(1f)
@@ -2080,7 +2154,8 @@ public class TakaneActivity extends Activity {
                     mainHandler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            animateRandomVersionNumbers(realVersion);
+                            Random rnd = new Random();
+                            animateRandomVersionNumbers(realVersion, rnd);
                         }
                     }, 200);
                 }
@@ -2088,16 +2163,16 @@ public class TakaneActivity extends Activity {
         }, 100);
     }
     
-    private void animateRandomVersionNumbers(final String realVersion) {
+    private void animateRandomVersionNumbers(final String realVersion, final Random rnd) {
         final int[] count = {0};
         final int maxCount = 12;
         
         Runnable versionRunnable = new Runnable() {
             @Override
             public void run() {
-                if (count[0] < maxCount && versionText != null && versionText.getParent() != null) {
-                    float randomMajor = 1 + random.nextFloat() * 9;
-                    float randomMinor = random.nextFloat() * 9;
+                if (count[0] < maxCount && versionText != null) {
+                    float randomMajor = 1 + rnd.nextFloat() * 9;
+                    float randomMinor = rnd.nextFloat() * 9;
                     String randomVersion = String.format("Version %.1f", randomMajor + randomMinor / 10);
                     versionText.setText(randomVersion);
                     count[0]++;
@@ -2115,7 +2190,7 @@ public class TakaneActivity extends Activity {
                                   final int delay, final Runnable onComplete) {
         final int[] index = {0};
         
-        if (textView == null || textView.getParent() == null) {
+        if (textView == null) {
             if (onComplete != null) {
                 onComplete.run();
             }
@@ -2125,7 +2200,7 @@ public class TakaneActivity extends Activity {
         Runnable typingRunnable = new Runnable() {
             @Override
             public void run() {
-                if (index[0] < text.length() && textView != null && textView.getParent() != null) {
+                if (index[0] < text.length() && textView != null) {
                     String currentText = textView.getText().toString() + text.charAt(index[0]);
                     textView.setText(currentText);
                     index[0]++;
@@ -2143,7 +2218,7 @@ public class TakaneActivity extends Activity {
         mainHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (moddedByText != null && moddedByText.getParent() != null) {
+                if (moddedByText != null) {
                     moddedByText.animate()
                         .alpha(1f)
                         .setDuration(600)
@@ -2151,7 +2226,7 @@ public class TakaneActivity extends Activity {
                         .setInterpolator(new DecelerateInterpolator())
                         .start();
                     
-                    if (takaneText != null && takaneText.getParent() != null) {
+                    if (takaneText != null) {
                         takaneText.animate()
                             .alpha(1f)
                             .setDuration(600)
@@ -2170,7 +2245,7 @@ public class TakaneActivity extends Activity {
     }
     
     private void startTypingAnimation() {
-        if (descText == null || descText.getParent() == null) return;
+        if (descText == null) return;
         
         final String fullText = descText.getText().toString();
         descText.setText("");
@@ -2181,7 +2256,7 @@ public class TakaneActivity extends Activity {
         Runnable typingRunnable = new Runnable() {
             @Override
             public void run() {
-                if (index[0] <= fullText.length() && descText != null && descText.getParent() != null) {
+                if (index[0] <= fullText.length() && descText != null) {
                     descText.setText(fullText.substring(0, index[0]));
                     index[0]++;
                     mainHandler.postDelayed(this, 40);
@@ -2313,7 +2388,7 @@ public class TakaneActivity extends Activity {
                 timeRemainingMillis = millisUntilFinished;
                 long seconds = (long) Math.ceil(millisUntilFinished / 1000.0);
                 
-                if (timerText != null && timerText.getParent() != null) {
+                if (timerText != null) {
                     timerText.setText(seconds + "s");
                     
                     if (seconds <= 3) {
@@ -2386,8 +2461,8 @@ public class TakaneActivity extends Activity {
             .withStartAction(new Runnable() {
                 @Override
                 public void run() {
-                    if (logoImageView != null && logoImageView.getParent() != null) {
-                        logoImageView.animate()
+                    if (logoContainer != null) {
+                        logoContainer.animate()
                             .scaleX(0.5f)
                             .scaleY(0.5f)
                             .alpha(0f)
@@ -2395,8 +2470,8 @@ public class TakaneActivity extends Activity {
                             .start();
                     }
                         
-                    if (appIconImageView != null && appIconImageView.getParent() != null) {
-                        appIconImageView.animate()
+                    if (appIconContainer != null) {
+                        appIconContainer.animate()
                             .scaleX(0.5f)
                             .scaleY(0.5f)
                             .alpha(0f)
@@ -2404,7 +2479,7 @@ public class TakaneActivity extends Activity {
                             .start();
                     }
                         
-                    if (bannerOuterContainer != null && bannerOuterContainer.getParent() != null) {
+                    if (bannerOuterContainer != null) {
                         bannerOuterContainer.animate()
                             .scaleX(0.85f)
                             .scaleY(0.85f)
@@ -2460,7 +2535,7 @@ public class TakaneActivity extends Activity {
             .withStartAction(new Runnable() {
                 @Override
                 public void run() {
-                    if (bannerOuterContainer != null && bannerOuterContainer.getParent() != null) {
+                    if (bannerOuterContainer != null) {
                         bannerOuterContainer.animate()
                             .alpha(0f)
                             .rotationBy(-360f)
@@ -2579,6 +2654,7 @@ public class TakaneActivity extends Activity {
             countDownTimer.cancel();
         }
         
+        // Clean up handler to avoid leaks
         mainHandler.removeCallbacksAndMessages(null);
         
         if (freezeGlowAnimator != null) {
@@ -2630,7 +2706,7 @@ public class TakaneActivity extends Activity {
     }
     
     // Static method to launch dialog from anywhere
-    public static void yuuka(Context context) {
+    public static void atsuko(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         boolean dontShow = prefs.getBoolean(DONT_SHOW_KEY, false);
         
@@ -2647,7 +2723,7 @@ public class TakaneActivity extends Activity {
             logoImageView.post(new Runnable() {
                 @Override
                 public void run() {
-                    if (logoImageView != null && logoImageView.getParent() != null) {
+                    if (logoImageView != null) {
                         logoImageView.setClipToOutline(true);
                         logoImageView.setOutlineProvider(new ViewOutlineProvider() {
                             @Override
@@ -2665,7 +2741,7 @@ public class TakaneActivity extends Activity {
             appIconImageView.post(new Runnable() {
                 @Override
                 public void run() {
-                    if (appIconImageView != null && appIconImageView.getParent() != null) {
+                    if (appIconImageView != null) {
                         appIconImageView.setClipToOutline(true);
                         appIconImageView.setOutlineProvider(new ViewOutlineProvider() {
                             @Override
