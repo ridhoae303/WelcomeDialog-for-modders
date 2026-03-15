@@ -62,7 +62,7 @@ This project is suitable if you are:
 8. This is the method call address if you edit directly from smali/dex:
 
 ### [Default]
-> **invoke-static {p0}, Lcom/takane/app/TakaneActivity;->yuuka(Landroid/content/Context;)V**
+> **invoke-static {p0}, Lcom/takane/app/TakaneActivity;->atsuko(Landroid/content/Context;)V**
 
 ### [ProGuard]
 > **invoke-static {p0}, Lcom/takane/app/TakaneActivity;->a(Landroid/content/Context;)V**
@@ -117,5 +117,3 @@ This project is licensed under the GNU General Public License v3.
 
 ### Note from me:
 > Small project, serious intent. Created for learning, experimenting, and sharing.
-
-
