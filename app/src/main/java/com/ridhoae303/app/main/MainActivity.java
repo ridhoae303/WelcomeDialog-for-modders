@@ -54,7 +54,7 @@ public class MainActivity extends Activity {
             setContentView(rootLayout);
             
             checkSignatureAndLaunch();
-            TakaneActivity.yuuka(this);
+            TakaneActivity.atsuko(this);
             
         } catch (Exception e) {
             showToast("Error inisialisasi aplikasi");
