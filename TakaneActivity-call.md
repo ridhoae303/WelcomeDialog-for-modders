@@ -18,7 +18,7 @@
         android:required="false" />
         
     // Call from any class, external.
-     TakaneActivity.yuuka(this);
+     TakaneActivity.atsuko(this);
      
            <!-- // Add to AndroidManifest -->
            <activity

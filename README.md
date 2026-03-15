@@ -9,15 +9,6 @@
 
 > **🎦 Please see the preview dialog at /preview.**
 
-# Galery
-
-## 📱 Default Rotation (Portrait)
-![Screenshot_2026-02-11-01-55-38-40_dc014ea3a40491a56aed4b1ec4b1a9da](https://github.com/user-attachments/assets/7a17c47e-42ee-4453-bb8f-b48f72345ab9)
-## 💻 Landscape Rotation
-![Screenshot_2026-02-11-01-56-10-47_dc014ea3a40491a56aed4b1ec4b1a9da](https://github.com/user-attachments/assets/83a89e57-e641-4f16-befa-0ff3c2fdcedd)
-## 🌈 Touch Rainbow View
-![Screenshot_2026-02-11-01-56-56-77_dc014ea3a40491a56aed4b1ec4b1a9da](https://github.com/user-attachments/assets/ff2c2314-bab2-4aff-90c2-fb623ff87bad)
-
 ## Project Status:
 - Newly created
 - Experimental
@@ -37,37 +28,6 @@ It does not promise perfection, but it is designed with clear intent.
 This project is suitable if you are:
 - A modder who wants to display a name/identity on the app page
 - A developer who wants to experiment with custom dialogs
-- Want to understand how to call dialogs directly from the .dex / smali level
-
-## 🛠️ How to Use (Modders)
-
-> Note: These steps are intended for users who already understand the basics of smali / dex.
-
-1. Prepare the smali file
-
-2. Go to:
-> /app/build/bin/classes.dex
-
-3. Extract the class (the class name will be adjusted later)
-
-4. Add the class to AndroidManifest.xml
-> Make sure to read and adjust the TakaneActivity-call.md
-
-5. Go to the target application's .dex file
-
-6. Select the application class that wants to call the dialog
-
-7. Call the dialog via register p0
-
-8. This is the method call address if you edit directly from smali/dex:
-
-### [Default]
-> **invoke-static {p0}, Lcom/takane/app/TakaneActivity;->atsuko(Landroid/content/Context;)V**
-
-### [ProGuard]
-> **invoke-static {p0}, Lcom/takane/app/TakaneActivity;->a(Landroid/content/Context;)V**
-
-If done correctly, the dialog will appear according to the lifecycle that was called.
 
 ## 🐞 Bug Fixes
 
