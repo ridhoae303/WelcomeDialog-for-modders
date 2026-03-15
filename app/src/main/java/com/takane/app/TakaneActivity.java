@@ -883,7 +883,6 @@ public class TakaneActivity extends Activity {
         logoImageView.setLayoutParams(logoParams);
         logoImageView.setAlpha(0f);
         logoImageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        logoContainer.addView(logoImageView);
         
         // Logo border
         RelativeLayout logoBorderContainer = new RelativeLayout(this);
@@ -892,13 +891,15 @@ public class TakaneActivity extends Activity {
         );
         logoBorderParams.addRule(RelativeLayout.CENTER_IN_PARENT);
         logoBorderContainer.setLayoutParams(logoBorderParams);
-        
+
         GradientDrawable logoBorder = new GradientDrawable();
         logoBorder.setShape(GradientDrawable.OVAL);
         logoBorder.setStroke(dpToPx(3), Color.parseColor("#00ADB5"));
         logoBorder.setColor(Color.TRANSPARENT);
         logoBorderContainer.setBackground(logoBorder);
+        
         logoContainer.addView(logoBorderContainer);
+        logoContainer.addView(logoImageView);
         
         // App info layout
         LinearLayout appInfoLayout = new LinearLayout(this);
