@@ -1,8 +1,12 @@
 # Welcome Dialog
-> Experimental Android dialog component written purely in Java. Simple on the surface, surprisingly thoughtful underneath.
+
+[![Social Banner](welcomedialog-banner.jpg)](https://github.com/ridhoae303)
+
+**Experimental Android dialog component written purely in Java. Simple on the surface, surprisingly thoughtful underneath.**
 
 # Preview
-> **🎦 Please see the preview dialog at /preview.**
+> **🎦 Please see the preview dialog.**
+
 ![Preview Dialog](https://github.com/ridhoae303/WelcomeDialog-for-modders/raw/main/preview/Dialog%20preview.gif)
 
 ## Introduction:
