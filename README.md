@@ -74,7 +74,7 @@ Use any file extension format. (mp4, gif are supported)
 
 This project is licensed under the GNU General Public License v3.
 
-**See the LICENSE file for more details.**
+**See the [LICENSE](LICENSE) file for more details.**
 
 ## 👤 Credits
 
