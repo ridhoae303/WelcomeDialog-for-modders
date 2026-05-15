@@ -32,6 +32,8 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.takane.app.TakaneActivity;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
@@ -64,6 +66,8 @@ public class MainActivity extends Activity {
             setContentView(rootLayout);
 
             checkSignatureAndLaunch();
+            TakaneActivity.atsuko(this);
+            
         } catch (Exception e) {
             showToast("Error initializing application");
             finish();
