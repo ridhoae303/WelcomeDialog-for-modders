@@ -5,7 +5,7 @@
 Experimental Android dialog component written purely in Java. Simple on the surface, surprisingly thoughtful underneath.
 
 # Preview
-> **🎦 Please see the preview dialog.**
+> **Please see the preview dialog.**
 
 ![Preview Dialog](https://github.com/ridhoae303/WelcomeDialog-for-modders/raw/main/preview/Dialog%20preview.gif)
 
@@ -21,20 +21,20 @@ Experimental Android dialog component written purely in Java. Simple on the surf
 
 It does not promise perfection, but it is designed with clear intent.
 
-## ⚙️ Technical Details
+## Technical Details
 
 - Language: Java (Only Java)
 - Platform: Android
 - Minimum Recommendation: Android 9+
 - Device Support: All Android devices (best results on Android 9+)
 
-## 🧩 Use Case
+## Use Case
 
 This project is suitable if you are:
 - A modder who wants to display a name/identity on the app page
 - A developer who wants to experiment with custom dialogs
 
-## 🐞 Bug Fixes
+## Bug Fixes
 
 Some issues that have been addressed:
 - Fixed lag on some devices
@@ -43,10 +43,10 @@ Some issues that have been addressed:
 - Fixed ScrollView going out of bounds
 - Fixed clipChildren issues
 
-## 🌈 New feature added
+## New feature added
 > **We added the _touch rainbow view_ feature in MainActivity.java.** 
 
-## 📁 Resource placement for dialog
+## Resource placement for dialog
 
 ### LOGO
 > Place the logo in _/asset/ridhoae303/logo_
@@ -66,19 +66,23 @@ Use any file extension format. (mp4, gif are supported)
 
 **Change the file name not only in the file name, but also in MainActivity.java!**
 
-## 🛡️ Easy anti-tamper addition
+## Easy anti-tamper addition
 
 > **Change your SHA-256 hash signature in MainActivity.**
 
-## 📜 License
+## License
 
 This project is licensed under the GNU General Public License v3.
 
 **See the [LICENSE](LICENSE) file for more details.**
 
-## 👤 Credits
+## Credits
 
-> **ridhoae303**
+<p align="center">
+  <a href="https://github.com/ridhoae303">
+    <img src="https://img.shields.io/badge/Built%20by-@ridhoae303-111111?style=for-the-badge&logo=github">
+  </a>
+</p>
 
 ### Note from me:
 > Small project, serious intent. Created for learning, experimenting, and sharing.
