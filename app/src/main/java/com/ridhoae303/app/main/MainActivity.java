@@ -96,7 +96,7 @@ public class MainActivity extends Activity {
         ));
 
         try {
-            InputStream is = getAssets().open("ridhoae303/assets/takane.jpg");
+            InputStream is = getAssets().open("ridhoae303/assets/assets/wallpaper.jpg");
             Bitmap original = BitmapFactory.decodeStream(is);
             is.close();
 
