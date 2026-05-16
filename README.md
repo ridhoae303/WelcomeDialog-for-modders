@@ -62,7 +62,7 @@ Use any file extension format. (mp4, gif are supported)
 > Change the font to your liking _/assets/ridhoae303/ridhoae303.ttf_
 
 ### Background wallpaper (Optional)
-> Place the wallpaper in _/assets/ridhoae303/assets/fuuka.jpg_
+> Place the wallpaper in _/assets/ridhoae303/assets/wallpaper.jpg_
 
 **Change the file name not only in the file name, but also in MainActivity.java!**
 
