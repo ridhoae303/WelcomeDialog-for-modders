@@ -1,5 +1,5 @@
-// Created by ridhoae303
-// Telegram: @ridhoae303 — https://t.me/ridhoae303
+// Created by ridhoae303 — GitHub: https://github.com/ridhoae303
+// No lambda expression.
 
 package com.takane.app;
 
@@ -136,6 +136,9 @@ public class TakaneActivity extends Activity {
     
     // Scroll toast state
     private boolean hasShownScrollToast = false;
+
+    // Current dialog sizing profile. Tiny DPI screens get cranky, so keep one clean source of truth.
+    private DialogProfile currentDialogProfile;
     
     // Custom ImageView for GIF rendering
     private class GifImageView extends ImageView {
@@ -266,8 +269,9 @@ public class TakaneActivity extends Activity {
                             logoImageView.getParent() == null) return;
                         
                         GifImageView gifImageView = new GifImageView(TakaneActivity.this);
+                        int logoSize = getResponsiveLogoSizePx();
                         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
-                            dpToPx(140), dpToPx(140)
+                            logoSize, logoSize
                         );
                         params.addRule(RelativeLayout.CENTER_IN_PARENT);
                         gifImageView.setLayoutParams(params);
@@ -298,8 +302,9 @@ public class TakaneActivity extends Activity {
                     logoContainer.removeView(logoImageView);
                     
                     VideoView videoView = new VideoView(TakaneActivity.this);
+                    int logoSize = getResponsiveLogoSizePx();
                     RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
-                        dpToPx(140), dpToPx(140)
+                        logoSize, logoSize
                     );
                     params.addRule(RelativeLayout.CENTER_IN_PARENT);
                     videoView.setLayoutParams(params);
@@ -404,8 +409,8 @@ public class TakaneActivity extends Activity {
                         
                         bannerInnerContainer.addView(gifView);
                         
-                        applyRoundedBanner(bannerOuterContainer, dpToPx(25));
-                        applyRoundedBanner(bannerInnerContainer, dpToPx(23));
+                        applyRoundedBanner(bannerOuterContainer, getResponsiveCornerRadiusPx());
+                        applyRoundedBanner(bannerInnerContainer, getResponsiveInnerCornerRadiusPx());
                     }
                 });
             }
@@ -452,8 +457,8 @@ public class TakaneActivity extends Activity {
                     bannerInnerContainer.addView(videoView);
                     bannerVideoView = videoView;
                     
-                    applyRoundedBanner(bannerOuterContainer, dpToPx(25));
-                    applyRoundedBanner(bannerInnerContainer, dpToPx(23));
+                    applyRoundedBanner(bannerOuterContainer, getResponsiveCornerRadiusPx());
+                    applyRoundedBanner(bannerInnerContainer, getResponsiveInnerCornerRadiusPx());
                 }
             });
         } catch (Exception e) {
@@ -487,8 +492,8 @@ public class TakaneActivity extends Activity {
                     
                     bannerInnerContainer.addView(bannerImageView);
                     
-                    applyRoundedBanner(bannerOuterContainer, dpToPx(25));
-                    applyRoundedBanner(bannerInnerContainer, dpToPx(23));
+                    applyRoundedBanner(bannerOuterContainer, getResponsiveCornerRadiusPx());
+                    applyRoundedBanner(bannerInnerContainer, getResponsiveInnerCornerRadiusPx());
                 }
             });
             
@@ -747,6 +752,9 @@ public class TakaneActivity extends Activity {
         rootLayout.setBackground(bgDrawable);
         rootLayout.setClipChildren(true);
         rootLayout.setClipToPadding(false);
+
+        final DialogProfile dialogProfile = buildDialogProfile();
+        currentDialogProfile = dialogProfile;
         
         // Content layer for slide animation
         contentLayer = new LinearLayout(this);
@@ -755,7 +763,7 @@ public class TakaneActivity extends Activity {
             ViewGroup.LayoutParams.WRAP_CONTENT
         );
         contentParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-        contentParams.setMargins(dpToPx(16), 0, dpToPx(16), dpToPx(16));
+        contentParams.setMargins(dialogProfile.sideMarginPx, 0, dialogProfile.sideMarginPx, dialogProfile.bottomMarginPx);
         contentLayer.setLayoutParams(contentParams);
         contentLayer.setOrientation(LinearLayout.VERTICAL);
         contentLayer.setClipChildren(true);
@@ -765,13 +773,13 @@ public class TakaneActivity extends Activity {
         // Main dialog container
         dialogContainer = new LinearLayout(this);
         LinearLayout.LayoutParams containerParams = new LinearLayout.LayoutParams(
-            dpToPx(420),
+            dialogProfile.dialogWidthPx,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
         containerParams.gravity = Gravity.CENTER_HORIZONTAL;
         dialogContainer.setLayoutParams(containerParams);
         dialogContainer.setOrientation(LinearLayout.VERTICAL);
-        dialogContainer.setMinimumHeight(dpToPx(380));
+        dialogContainer.setMinimumHeight(dialogProfile.dialogMinHeightPx);
         
         // Initial state for entrance animation
         dialogContainer.setAlpha(0f);
@@ -781,8 +789,8 @@ public class TakaneActivity extends Activity {
         // Dialog background
         GradientDrawable dialogBg = new GradientDrawable();
         dialogBg.setColor(Color.parseColor("#1A1A2E"));
-        dialogBg.setCornerRadius(dpToPx(25));
-        dialogBg.setStroke(dpToPx(3), Color.parseColor("#00ADB5"));
+        dialogBg.setCornerRadius(dialogProfile.cornerRadiusPx);
+        dialogBg.setStroke(dialogProfile.borderWidthPx, Color.parseColor("#00ADB5"));
         dialogContainer.setBackground(dialogBg);
         dialogContainer.setClipChildren(true);
         dialogContainer.setClipToPadding(false);
@@ -793,7 +801,7 @@ public class TakaneActivity extends Activity {
             dialogContainer.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(25));
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dialogProfile.cornerRadiusPx);
                 }
             });
         }
@@ -819,7 +827,7 @@ public class TakaneActivity extends Activity {
             ScrollView.LayoutParams.WRAP_CONTENT
         ));
         dialogContent.setOrientation(LinearLayout.VERTICAL);
-        dialogContent.setPadding(dpToPx(25), dpToPx(30), dpToPx(25), dpToPx(10));
+        dialogContent.setPadding(dialogProfile.contentSidePaddingPx, dialogProfile.contentTopPaddingPx, dialogProfile.contentSidePaddingPx, dialogProfile.contentBottomPaddingPx);
         dialogContent.setClipChildren(false);  // Fix for banner clipping
         dialogContent.setClipToPadding(false); // Allow content to draw outside padding
         
@@ -835,7 +843,7 @@ public class TakaneActivity extends Activity {
         // Banner container
         bannerOuterContainer = new RelativeLayout(this);
         RelativeLayout.LayoutParams bannerParams = new RelativeLayout.LayoutParams(
-            RelativeLayout.LayoutParams.MATCH_PARENT, dpToPx(180)
+            RelativeLayout.LayoutParams.MATCH_PARENT, dialogProfile.bannerHeightPx
         );
         bannerParams.addRule(RelativeLayout.ALIGN_PARENT_TOP);
         bannerOuterContainer.setLayoutParams(bannerParams);
@@ -846,9 +854,9 @@ public class TakaneActivity extends Activity {
         // Banner border
         GradientDrawable bannerBorder = new GradientDrawable();
         bannerBorder.setShape(GradientDrawable.RECTANGLE);
-        bannerBorder.setStroke(dpToPx(2), Color.parseColor("#FFD700"));
+        bannerBorder.setStroke(dialogProfile.thinBorderWidthPx, Color.parseColor("#FFD700"));
         bannerBorder.setColor(Color.TRANSPARENT);
-        bannerBorder.setCornerRadius(dpToPx(25));
+        bannerBorder.setCornerRadius(dialogProfile.cornerRadiusPx);
         bannerOuterContainer.setBackground(bannerBorder);
         
         // Inner banner container for media
@@ -857,7 +865,7 @@ public class TakaneActivity extends Activity {
             RelativeLayout.LayoutParams.MATCH_PARENT,
             RelativeLayout.LayoutParams.MATCH_PARENT
         );
-        innerParams.setMargins(dpToPx(4), dpToPx(4), dpToPx(4), dpToPx(4));
+        innerParams.setMargins(dialogProfile.mediaInsetPx, dialogProfile.mediaInsetPx, dialogProfile.mediaInsetPx, dialogProfile.mediaInsetPx);
         bannerInnerContainer.setLayoutParams(innerParams);
         bannerInnerContainer.setClipChildren(true);
         bannerInnerContainer.setClipToPadding(true);
@@ -867,17 +875,17 @@ public class TakaneActivity extends Activity {
         logoContainer = new RelativeLayout(this);
         logoContainer.setId(View.generateViewId());
         RelativeLayout.LayoutParams logoContainerParams = new RelativeLayout.LayoutParams(
-            dpToPx(150), dpToPx(150)
+            dialogProfile.logoContainerSizePx, dialogProfile.logoContainerSizePx
         );
         logoContainerParams.addRule(RelativeLayout.CENTER_HORIZONTAL);
-        logoContainerParams.topMargin = dpToPx(95);
+        logoContainerParams.topMargin = dialogProfile.logoTopMarginPx;
         logoContainer.setLayoutParams(logoContainerParams);
         logoContainer.setClipChildren(false);
         
         // Logo image view
         logoImageView = new ImageView(this);
         RelativeLayout.LayoutParams logoParams = new RelativeLayout.LayoutParams(
-            dpToPx(140), dpToPx(140)
+            dialogProfile.logoSizePx, dialogProfile.logoSizePx
         );
         logoParams.addRule(RelativeLayout.CENTER_IN_PARENT);
         logoImageView.setLayoutParams(logoParams);
@@ -887,14 +895,14 @@ public class TakaneActivity extends Activity {
         // Logo border
         RelativeLayout logoBorderContainer = new RelativeLayout(this);
         RelativeLayout.LayoutParams logoBorderParams = new RelativeLayout.LayoutParams(
-            dpToPx(150), dpToPx(150)
+            dialogProfile.logoContainerSizePx, dialogProfile.logoContainerSizePx
         );
         logoBorderParams.addRule(RelativeLayout.CENTER_IN_PARENT);
         logoBorderContainer.setLayoutParams(logoBorderParams);
 
         GradientDrawable logoBorder = new GradientDrawable();
         logoBorder.setShape(GradientDrawable.OVAL);
-        logoBorder.setStroke(dpToPx(3), Color.parseColor("#00ADB5"));
+        logoBorder.setStroke(dialogProfile.borderWidthPx, Color.parseColor("#00ADB5"));
         logoBorder.setColor(Color.TRANSPARENT);
         logoBorderContainer.setBackground(logoBorder);
         
@@ -908,26 +916,26 @@ public class TakaneActivity extends Activity {
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
         appInfoParams.addRule(RelativeLayout.BELOW, logoContainer.getId());
-        appInfoParams.topMargin = dpToPx(20);
+        appInfoParams.topMargin = dialogProfile.appInfoTopMarginPx;
         appInfoLayout.setLayoutParams(appInfoParams);
         appInfoLayout.setOrientation(LinearLayout.HORIZONTAL);
         appInfoLayout.setGravity(Gravity.CENTER);
-        appInfoLayout.setPadding(0, dpToPx(20), 0, dpToPx(20));
+        appInfoLayout.setPadding(0, dialogProfile.appInfoVerticalPaddingPx, 0, dialogProfile.appInfoVerticalPaddingPx);
         appInfoLayout.setClipChildren(false);
         
         // App icon container
         final RelativeLayout appIconContainer = new RelativeLayout(this);
         LinearLayout.LayoutParams appIconContainerParams = new LinearLayout.LayoutParams(
-            dpToPx(70), dpToPx(70)
+            dialogProfile.appIconContainerSizePx, dialogProfile.appIconContainerSizePx
         );
-        appIconContainerParams.rightMargin = dpToPx(15);
+        appIconContainerParams.rightMargin = dialogProfile.appIconRightMarginPx;
         appIconContainer.setLayoutParams(appIconContainerParams);
         appIconContainer.setClipChildren(false);
         
         // App icon image
         appIconImageView = new ImageView(this);
         RelativeLayout.LayoutParams appIconParams = new RelativeLayout.LayoutParams(
-            dpToPx(58), dpToPx(58)
+            dialogProfile.appIconSizePx, dialogProfile.appIconSizePx
         );
         appIconParams.addRule(RelativeLayout.CENTER_IN_PARENT);
         appIconImageView.setLayoutParams(appIconParams);
@@ -948,7 +956,7 @@ public class TakaneActivity extends Activity {
         // App icon border
         GradientDrawable appIconBorder = new GradientDrawable();
         appIconBorder.setShape(GradientDrawable.OVAL);
-        appIconBorder.setStroke(dpToPx(3), Color.parseColor("#FF6B9D"));
+        appIconBorder.setStroke(dialogProfile.borderWidthPx, Color.parseColor("#FF6B9D"));
         appIconBorder.setColor(Color.TRANSPARENT);
         appIconContainer.setBackground(appIconBorder);
         appIconContainer.addView(appIconImageView);
@@ -969,7 +977,7 @@ public class TakaneActivity extends Activity {
             LinearLayout.LayoutParams.WRAP_CONTENT
         ));
         welcomeText.setText("Welcome to ");
-        welcomeText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+        welcomeText.setTextSize(TypedValue.COMPLEX_UNIT_SP, scaledSp(20));
         welcomeText.setTextColor(Color.WHITE);
         welcomeText.setGravity(Gravity.CENTER);
         applyFontToTextView(welcomeText, Typeface.BOLD);
@@ -988,7 +996,7 @@ public class TakaneActivity extends Activity {
             LinearLayout.LayoutParams.WRAP_CONTENT
         ));
         packageText.setText("");
-        packageText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        packageText.setTextSize(TypedValue.COMPLEX_UNIT_SP, scaledSp(11));
         packageText.setTextColor(Color.parseColor("#888888"));
         packageText.setGravity(Gravity.CENTER);
         packageText.setPadding(0, dpToPx(2), 0, 0);
@@ -1013,7 +1021,7 @@ public class TakaneActivity extends Activity {
             LinearLayout.LayoutParams.WRAP_CONTENT
         ));
         versionText.setText("Version ");
-        versionText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        versionText.setTextSize(TypedValue.COMPLEX_UNIT_SP, scaledSp(12));
         versionText.setTextColor(Color.parseColor("#00ADB5"));
         versionText.setGravity(Gravity.CENTER);
         applyFontToTextView(versionText, Typeface.BOLD);
@@ -1119,14 +1127,14 @@ public class TakaneActivity extends Activity {
         View divider = new View(this);
         LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
-            dpToPx(2)
+            dialogProfile.dividerHeightPx
         );
-        dividerParams.setMargins(0, dpToPx(10), 0, dpToPx(10));
+        dividerParams.setMargins(0, dialogProfile.dividerVerticalMarginPx, 0, dialogProfile.dividerVerticalMarginPx);
         divider.setLayoutParams(dividerParams);
         
         GradientDrawable dividerBg = new GradientDrawable();
         dividerBg.setColor(Color.parseColor("#00ADB5"));
-        dividerBg.setCornerRadius(dpToPx(1));
+        dividerBg.setCornerRadius(Math.max(1, dialogProfile.dividerHeightPx / 2));
         divider.setBackground(dividerBg);
         
         // Modded by text
@@ -1136,10 +1144,10 @@ public class TakaneActivity extends Activity {
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
         moddedParams.gravity = Gravity.CENTER;
-        moddedParams.topMargin = dpToPx(15);
+        moddedParams.topMargin = dialogProfile.smallTopMarginPx;
         moddedByText.setLayoutParams(moddedParams);
         moddedByText.setText("Modded by ridhoae303 👻");
-        moddedByText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        moddedByText.setTextSize(TypedValue.COMPLEX_UNIT_SP, scaledSp(18));
         moddedByText.setTextColor(Color.parseColor("#00FFFF"));
         applyFontToTextView(moddedByText, Typeface.BOLD);
         moddedByText.setShadowLayer(dpToPx(1), 0, 0, Color.parseColor("#0097A7"));
@@ -1208,11 +1216,11 @@ public class TakaneActivity extends Activity {
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
         takaneParams.gravity = Gravity.CENTER;
-        takaneParams.topMargin = dpToPx(6);
-        takaneParams.bottomMargin = dpToPx(10);
+        takaneParams.topMargin = dialogProfile.tinyVerticalMarginPx;
+        takaneParams.bottomMargin = dialogProfile.dividerVerticalMarginPx;
         takaneText.setLayoutParams(takaneParams);
         takaneText.setText("Miyoshi Takane best girl 💕");
-        takaneText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        takaneText.setTextSize(TypedValue.COMPLEX_UNIT_SP, scaledSp(15));
         takaneText.setTextColor(Color.parseColor("#FF5C8D"));
         takaneText.setGravity(Gravity.CENTER);
         applyFontToTextView(takaneText, Typeface.NORMAL);
@@ -1308,16 +1316,16 @@ public class TakaneActivity extends Activity {
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
         descParams.gravity = Gravity.CENTER;
-        descParams.topMargin = dpToPx(15);
-        descParams.bottomMargin = dpToPx(25);
+        descParams.topMargin = dialogProfile.smallTopMarginPx;
+        descParams.bottomMargin = dialogProfile.descBottomMarginPx;
         descText.setLayoutParams(descParams);
         descText.setText("Join our WhatsApp Community to get mods and other updates.");
-        descText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        descText.setTextSize(TypedValue.COMPLEX_UNIT_SP, scaledSp(15));
         descText.setTextColor(Color.parseColor("#FFA500"));
         descText.setGravity(Gravity.CENTER);
         applyFontToTextView(descText, Typeface.NORMAL);
-        descText.setMaxWidth(dpToPx(350));
-        descText.setLineSpacing(dpToPx(4), 1.2f);
+        descText.setMaxWidth(dialogProfile.descMaxWidthPx);
+        descText.setLineSpacing(dialogProfile.lineSpacingPx, 1.2f);
         descText.setAlpha(0f);
         
         descText.setOnClickListener(new View.OnClickListener() {
@@ -1407,7 +1415,7 @@ public class TakaneActivity extends Activity {
         ));
         checkboxTimerLayout.setOrientation(LinearLayout.VERTICAL);
         checkboxTimerLayout.setGravity(Gravity.END);
-        checkboxTimerLayout.setPadding(0, dpToPx(10), 0, dpToPx(20));
+        checkboxTimerLayout.setPadding(0, dialogProfile.dividerVerticalMarginPx, 0, dialogProfile.checkboxBottomPaddingPx);
         
         LinearLayout timerLayout = new LinearLayout(this);
         timerLayout.setLayoutParams(new LinearLayout.LayoutParams(
@@ -1416,15 +1424,15 @@ public class TakaneActivity extends Activity {
         ));
         timerLayout.setOrientation(LinearLayout.HORIZONTAL);
         timerLayout.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-        timerLayout.setPadding(0, 0, 0, dpToPx(10));
+        timerLayout.setPadding(0, 0, 0, dialogProfile.dividerVerticalMarginPx);
         
         timerText = new TextView(this);
         LinearLayout.LayoutParams timerTextParams = new LinearLayout.LayoutParams(
-            dpToPx(70), LinearLayout.LayoutParams.WRAP_CONTENT
+            dialogProfile.timerWidthPx, LinearLayout.LayoutParams.WRAP_CONTENT
         );
         timerText.setLayoutParams(timerTextParams);
         timerText.setText("15s");
-        timerText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        timerText.setTextSize(TypedValue.COMPLEX_UNIT_SP, scaledSp(14));
         timerText.setTextColor(Color.parseColor("#FFD700"));
         applyFontToTextView(timerText, Typeface.BOLD);
         timerText.setGravity(Gravity.CENTER);
@@ -1437,7 +1445,7 @@ public class TakaneActivity extends Activity {
         ));
         checkboxesContainer.setOrientation(LinearLayout.VERTICAL);
         checkboxesContainer.setGravity(Gravity.END);
-        checkboxesContainer.setPadding(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8));
+        checkboxesContainer.setPadding(dialogProfile.checkboxOuterPaddingPx, dialogProfile.checkboxOuterPaddingPx, dialogProfile.checkboxOuterPaddingPx, dialogProfile.checkboxOuterPaddingPx);
         checkboxesContainer.setClipChildren(false);
         checkboxesContainer.setClipToPadding(false);
         
@@ -1448,12 +1456,12 @@ public class TakaneActivity extends Activity {
         ));
         dontShowContainer.setOrientation(LinearLayout.HORIZONTAL);
         dontShowContainer.setGravity(Gravity.CENTER_VERTICAL);
-        dontShowContainer.setPadding(0, 0, 0, dpToPx(8));
+        dontShowContainer.setPadding(0, 0, 0, dialogProfile.checkboxOuterPaddingPx);
         dontShowContainer.setClipChildren(false);
         
         dontShowWrapper = new LinearLayout(this);
         dontShowWrapper.setLayoutParams(new LinearLayout.LayoutParams(
-            dpToPx(36), dpToPx(36)
+            dialogProfile.checkboxWrapperSizePx, dialogProfile.checkboxWrapperSizePx
         ));
         dontShowWrapper.setGravity(Gravity.CENTER);
         dontShowWrapper.setClipChildren(false);
@@ -1461,21 +1469,21 @@ public class TakaneActivity extends Activity {
         
         dontShowCheckbox = new CheckBox(this);
         LinearLayout.LayoutParams checkboxParams = new LinearLayout.LayoutParams(
-            dpToPx(24), dpToPx(24)
+            dialogProfile.checkboxTouchSizePx, dialogProfile.checkboxTouchSizePx
         );
         dontShowCheckbox.setLayoutParams(checkboxParams);
         dontShowCheckbox.setButtonDrawable(null);
         
         GradientDrawable uncheckedBg = new GradientDrawable();
         uncheckedBg.setShape(GradientDrawable.OVAL);
-        uncheckedBg.setSize(dpToPx(20), dpToPx(20));
-        uncheckedBg.setStroke(dpToPx(2), Color.parseColor("#00ADB5"));
+        uncheckedBg.setSize(dialogProfile.checkboxDotSizePx, dialogProfile.checkboxDotSizePx);
+        uncheckedBg.setStroke(dialogProfile.thinBorderWidthPx, Color.parseColor("#00ADB5"));
         uncheckedBg.setColor(Color.TRANSPARENT);
         
         GradientDrawable checkedBg = new GradientDrawable();
         checkedBg.setShape(GradientDrawable.OVAL);
-        checkedBg.setSize(dpToPx(20), dpToPx(20));
-        checkedBg.setStroke(dpToPx(2), Color.parseColor("#00ADB5"));
+        checkedBg.setSize(dialogProfile.checkboxDotSizePx, dialogProfile.checkboxDotSizePx);
+        checkedBg.setStroke(dialogProfile.thinBorderWidthPx, Color.parseColor("#00ADB5"));
         checkedBg.setColor(Color.parseColor("#00ADB5"));
         
         android.graphics.drawable.StateListDrawable states = new android.graphics.drawable.StateListDrawable();
@@ -1491,7 +1499,7 @@ public class TakaneActivity extends Activity {
             LinearLayout.LayoutParams.WRAP_CONTENT
         ));
         dontShowCheckboxText.setText("Don't show again");
-        dontShowCheckboxText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        dontShowCheckboxText.setTextSize(TypedValue.COMPLEX_UNIT_SP, scaledSp(14));
         dontShowCheckboxText.setTextColor(Color.parseColor("#CCCCCC"));
         applyFontToTextView(dontShowCheckboxText, Typeface.NORMAL);
         
@@ -1509,7 +1517,7 @@ public class TakaneActivity extends Activity {
         
         timeFreezeWrapper = new LinearLayout(this);
         timeFreezeWrapper.setLayoutParams(new LinearLayout.LayoutParams(
-            dpToPx(36), dpToPx(36)
+            dialogProfile.checkboxWrapperSizePx, dialogProfile.checkboxWrapperSizePx
         ));
         timeFreezeWrapper.setGravity(Gravity.CENTER);
         timeFreezeWrapper.setClipChildren(false);
@@ -1517,21 +1525,21 @@ public class TakaneActivity extends Activity {
         
         timeFreezeCheckbox = new CheckBox(this);
         LinearLayout.LayoutParams timeFreezeParams = new LinearLayout.LayoutParams(
-            dpToPx(24), dpToPx(24)
+            dialogProfile.checkboxTouchSizePx, dialogProfile.checkboxTouchSizePx
         );
         timeFreezeCheckbox.setLayoutParams(timeFreezeParams);
         timeFreezeCheckbox.setButtonDrawable(null);
         
         GradientDrawable timeFreezeUncheckedBg = new GradientDrawable();
         timeFreezeUncheckedBg.setShape(GradientDrawable.OVAL);
-        timeFreezeUncheckedBg.setSize(dpToPx(20), dpToPx(20));
-        timeFreezeUncheckedBg.setStroke(dpToPx(2), Color.parseColor("#FFD700"));
+        timeFreezeUncheckedBg.setSize(dialogProfile.checkboxDotSizePx, dialogProfile.checkboxDotSizePx);
+        timeFreezeUncheckedBg.setStroke(dialogProfile.thinBorderWidthPx, Color.parseColor("#FFD700"));
         timeFreezeUncheckedBg.setColor(Color.TRANSPARENT);
         
         GradientDrawable timeFreezeCheckedBg = new GradientDrawable();
         timeFreezeCheckedBg.setShape(GradientDrawable.OVAL);
-        timeFreezeCheckedBg.setSize(dpToPx(20), dpToPx(20));
-        timeFreezeCheckedBg.setStroke(dpToPx(2), Color.parseColor("#FFD700"));
+        timeFreezeCheckedBg.setSize(dialogProfile.checkboxDotSizePx, dialogProfile.checkboxDotSizePx);
+        timeFreezeCheckedBg.setStroke(dialogProfile.thinBorderWidthPx, Color.parseColor("#FFD700"));
         timeFreezeCheckedBg.setColor(Color.parseColor("#FFD700"));
         
         android.graphics.drawable.StateListDrawable timeFreezeStates = new android.graphics.drawable.StateListDrawable();
@@ -1547,7 +1555,7 @@ public class TakaneActivity extends Activity {
             LinearLayout.LayoutParams.WRAP_CONTENT
         ));
         timeFreezeText.setText("Freeze Time");
-        timeFreezeText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        timeFreezeText.setTextSize(TypedValue.COMPLEX_UNIT_SP, scaledSp(14));
         timeFreezeText.setTextColor(Color.parseColor("#CCCCCC"));
         applyFontToTextView(timeFreezeText, Typeface.NORMAL);
         
@@ -1587,36 +1595,36 @@ public class TakaneActivity extends Activity {
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        buttonContainerParams.topMargin = dpToPx(10);
+        buttonContainerParams.topMargin = dialogProfile.dividerVerticalMarginPx;
         buttonContainer.setLayoutParams(buttonContainerParams);
         buttonContainer.setOrientation(LinearLayout.HORIZONTAL);
         buttonContainer.setWeightSum(2);
-        buttonContainer.setPadding(dpToPx(25), 0, dpToPx(25), dpToPx(25));
+        buttonContainer.setPadding(dialogProfile.buttonSidePaddingPx, 0, dialogProfile.buttonSidePaddingPx, dialogProfile.buttonBottomPaddingPx);
         
         closeBtn = new Button(this);
         LinearLayout.LayoutParams closeParams = new LinearLayout.LayoutParams(
             0, LinearLayout.LayoutParams.WRAP_CONTENT, 1
         );
-        closeParams.rightMargin = dpToPx(10);
+        closeParams.rightMargin = dialogProfile.buttonGapPx;
         closeBtn.setLayoutParams(closeParams);
         closeBtn.setText("CLOSE");
-        closeBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        closeBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, scaledSp(16));
         closeBtn.setTextColor(Color.WHITE);
         closeBtn.setBackground(createButtonBg(false));
-        closeBtn.setPadding(dpToPx(20), dpToPx(16), dpToPx(20), dpToPx(16));
+        closeBtn.setPadding(dialogProfile.buttonHorizontalPaddingPx, dialogProfile.buttonVerticalPaddingPx, dialogProfile.buttonHorizontalPaddingPx, dialogProfile.buttonVerticalPaddingPx);
         applyFontToTextView(closeBtn, Typeface.BOLD);
         
         waBtn = new Button(this);
         LinearLayout.LayoutParams waParams = new LinearLayout.LayoutParams(
             0, LinearLayout.LayoutParams.WRAP_CONTENT, 1
         );
-        waParams.leftMargin = dpToPx(10);
+        waParams.leftMargin = dialogProfile.buttonGapPx;
         waBtn.setLayoutParams(waParams);
         waBtn.setText("WHATSAPP");
-        waBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        waBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, scaledSp(16));
         waBtn.setTextColor(Color.WHITE);
         waBtn.setBackground(createButtonBg(true));
-        waBtn.setPadding(dpToPx(20), dpToPx(16), dpToPx(20), dpToPx(16));
+        waBtn.setPadding(dialogProfile.buttonHorizontalPaddingPx, dialogProfile.buttonVerticalPaddingPx, dialogProfile.buttonHorizontalPaddingPx, dialogProfile.buttonVerticalPaddingPx);
         applyFontToTextView(waBtn, Typeface.BOLD);
         
         // Assemble views
@@ -1644,6 +1652,7 @@ public class TakaneActivity extends Activity {
         loadLogoMedia();
         loadBannerMedia();
         ensureClipSystem();
+        applyResponsiveDialogHeightCap(dialogProfile);
         
         // Start entrance animation
         dialogContainer.post(new Runnable() {
@@ -2259,6 +2268,199 @@ public class TakaneActivity extends Activity {
             .start();
     }
     
+    private static class DialogProfile {
+        float uiScale;
+        float textScale;
+        int sideMarginPx;
+        int bottomMarginPx;
+        int dialogWidthPx;
+        int dialogMinHeightPx;
+        int dialogMaxHeightPx;
+        int cornerRadiusPx;
+        int borderWidthPx;
+        int thinBorderWidthPx;
+        int contentSidePaddingPx;
+        int contentTopPaddingPx;
+        int contentBottomPaddingPx;
+        int bannerHeightPx;
+        int mediaInsetPx;
+        int logoContainerSizePx;
+        int logoSizePx;
+        int logoTopMarginPx;
+        int appInfoTopMarginPx;
+        int appInfoVerticalPaddingPx;
+        int appIconContainerSizePx;
+        int appIconSizePx;
+        int appIconRightMarginPx;
+        int dividerHeightPx;
+        int dividerVerticalMarginPx;
+        int smallTopMarginPx;
+        int tinyVerticalMarginPx;
+        int descBottomMarginPx;
+        int descMaxWidthPx;
+        int lineSpacingPx;
+        int checkboxBottomPaddingPx;
+        int checkboxOuterPaddingPx;
+        int checkboxWrapperSizePx;
+        int checkboxTouchSizePx;
+        int checkboxDotSizePx;
+        int timerWidthPx;
+        int buttonSidePaddingPx;
+        int buttonBottomPaddingPx;
+        int buttonHorizontalPaddingPx;
+        int buttonVerticalPaddingPx;
+        int buttonGapPx;
+    }
+
+    private DialogProfile buildDialogProfile() {
+        DisplayMetrics dm = getResources().getDisplayMetrics();
+        android.content.res.Configuration config = getResources().getConfiguration();
+
+        int screenWidth = Math.max(1, dm.widthPixels);
+        int screenHeight = Math.max(1, dm.heightPixels);
+        float density = dm.density <= 0f ? 1f : dm.density;
+        float widthDp = screenWidth / density;
+        float heightDp = screenHeight / density;
+        float shortDp = Math.min(widthDp, heightDp);
+        boolean landscape = screenWidth > screenHeight;
+
+        int screenSize = config.screenLayout & android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK;
+        boolean bigScreen = screenSize == android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE
+                || screenSize == android.content.res.Configuration.SCREENLAYOUT_SIZE_XLARGE
+                || config.smallestScreenWidthDp >= 600;
+
+        int uiMode = config.uiMode & android.content.res.Configuration.UI_MODE_TYPE_MASK;
+        boolean desktopLike = uiMode == android.content.res.Configuration.UI_MODE_TYPE_DESK
+                || uiMode == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION;
+
+        boolean roomy = bigScreen || desktopLike;
+        float widthScale = clampFloat(shortDp / 392f, 0.78f, 1.0f);
+        float heightBase = landscape ? 430f : 720f;
+        float heightScale = clampFloat(heightDp / heightBase, 0.74f, 1.0f);
+        float uiScale = roomy ? 1.0f : Math.min(widthScale, heightScale);
+
+        DialogProfile profile = new DialogProfile();
+        profile.uiScale = uiScale;
+        profile.textScale = roomy ? 1.0f : clampFloat(uiScale, 0.84f, 1.0f);
+
+        profile.sideMarginPx = scaledDp(16, uiScale, 8);
+        profile.bottomMarginPx = scaledDp(16, uiScale, 8);
+
+        int availableWidth = Math.max(1, screenWidth - (profile.sideMarginPx * 2));
+        int baseWidthDp = roomy ? (landscape ? 500 : 460) : 420;
+        int targetWidth = dpToPx(baseWidthDp);
+        if (roomy) {
+            int wideCap = (int) (screenWidth * (landscape ? 0.58f : 0.76f));
+            targetWidth = Math.min(targetWidth, Math.max(dpToPx(360), wideCap));
+        }
+
+        int widthFloor = Math.min(availableWidth, dpToPx(280));
+        profile.dialogWidthPx = Math.max(widthFloor, Math.min(targetWidth, availableWidth));
+
+        int topBreathingRoom = scaledDp(landscape ? 12 : 24, uiScale, 6);
+        profile.dialogMaxHeightPx = Math.max(dpToPx(240), screenHeight - profile.bottomMarginPx - topBreathingRoom);
+        profile.dialogMaxHeightPx = Math.min(profile.dialogMaxHeightPx, Math.max(1, screenHeight - profile.bottomMarginPx));
+        profile.dialogMinHeightPx = Math.min(scaledDp(380, uiScale, 260), profile.dialogMaxHeightPx);
+
+        profile.cornerRadiusPx = scaledDp(25, uiScale, 16);
+        profile.borderWidthPx = scaledDp(3, uiScale, 2);
+        profile.thinBorderWidthPx = scaledDp(2, uiScale, 1);
+        profile.contentSidePaddingPx = scaledDp(25, uiScale, 16);
+        profile.contentTopPaddingPx = scaledDp(30, uiScale, 18);
+        profile.contentBottomPaddingPx = scaledDp(10, uiScale, 6);
+        profile.bannerHeightPx = scaledDp(180, uiScale, 120);
+        profile.mediaInsetPx = scaledDp(4, uiScale, 3);
+        profile.logoContainerSizePx = scaledDp(150, uiScale, 104);
+        profile.logoSizePx = scaledDp(140, uiScale, 96);
+        profile.logoTopMarginPx = scaledDp(95, uiScale, 64);
+        profile.appInfoTopMarginPx = scaledDp(20, uiScale, 10);
+        profile.appInfoVerticalPaddingPx = scaledDp(20, uiScale, 10);
+        profile.appIconContainerSizePx = scaledDp(70, uiScale, 52);
+        profile.appIconSizePx = scaledDp(58, uiScale, 42);
+        profile.appIconRightMarginPx = scaledDp(15, uiScale, 8);
+        profile.dividerHeightPx = scaledDp(2, uiScale, 1);
+        profile.dividerVerticalMarginPx = scaledDp(10, uiScale, 6);
+        profile.smallTopMarginPx = scaledDp(15, uiScale, 8);
+        profile.tinyVerticalMarginPx = scaledDp(6, uiScale, 4);
+        profile.descBottomMarginPx = scaledDp(25, uiScale, 12);
+        profile.lineSpacingPx = scaledDp(4, uiScale, 2);
+        profile.checkboxBottomPaddingPx = scaledDp(20, uiScale, 10);
+        profile.checkboxOuterPaddingPx = scaledDp(8, uiScale, 5);
+        profile.checkboxWrapperSizePx = scaledDp(36, uiScale, 28);
+        profile.checkboxTouchSizePx = scaledDp(24, uiScale, 20);
+        profile.checkboxDotSizePx = scaledDp(20, uiScale, 16);
+        profile.timerWidthPx = scaledDp(70, uiScale, 52);
+        profile.buttonSidePaddingPx = scaledDp(25, uiScale, 14);
+        profile.buttonBottomPaddingPx = scaledDp(25, uiScale, 14);
+        profile.buttonHorizontalPaddingPx = scaledDp(20, uiScale, 12);
+        profile.buttonVerticalPaddingPx = scaledDp(16, uiScale, 10);
+        profile.buttonGapPx = scaledDp(10, uiScale, 6);
+
+        int maxTextWidth = Math.max(1, profile.dialogWidthPx - (profile.contentSidePaddingPx * 2));
+        int minTextWidth = Math.min(maxTextWidth, dpToPx(180));
+        profile.descMaxWidthPx = Math.max(minTextWidth, Math.min(scaledDp(350, uiScale, 220), maxTextWidth));
+
+        return profile;
+    }
+
+    private void applyResponsiveDialogHeightCap(final DialogProfile profile) {
+        if (dialogContainer == null || profile == null) return;
+
+        dialogContainer.post(new Runnable() {
+            @Override
+            public void run() {
+                if (dialogContainer == null || dialogContainer.getParent() == null) return;
+
+                ViewGroup.LayoutParams params = dialogContainer.getLayoutParams();
+                int measuredHeight = dialogContainer.getMeasuredHeight();
+                if (measuredHeight > profile.dialogMaxHeightPx) {
+                    params.height = profile.dialogMaxHeightPx;
+                } else {
+                    params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                }
+                dialogContainer.setLayoutParams(params);
+            }
+        });
+    }
+
+    private int getResponsiveLogoSizePx() {
+        if (currentDialogProfile == null) {
+            return dpToPx(140);
+        }
+        return currentDialogProfile.logoSizePx;
+    }
+
+    private int getResponsiveCornerRadiusPx() {
+        if (currentDialogProfile == null) {
+            return dpToPx(25);
+        }
+        return currentDialogProfile.cornerRadiusPx;
+    }
+
+    private int getResponsiveInnerCornerRadiusPx() {
+        if (currentDialogProfile == null) {
+            return dpToPx(23);
+        }
+        return Math.max(1, currentDialogProfile.cornerRadiusPx - currentDialogProfile.mediaInsetPx);
+    }
+
+    private float scaledSp(float sp) {
+        float scale = currentDialogProfile == null ? 1.0f : currentDialogProfile.textScale;
+        return Math.max(10.0f, sp * scale);
+    }
+
+    private int scaledDp(int dp, float scale, int minDp) {
+        int minPx = dpToPx(minDp);
+        int scaledPx = Math.round(dpToPx(dp) * scale);
+        return Math.max(minPx, scaledPx);
+    }
+
+    private float clampFloat(float value, float min, float max) {
+        if (value < min) return min;
+        if (value > max) return max;
+        return value;
+    }
+
     private int dpToPx(int dp) {
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
         return Math.round(dp * displayMetrics.density);
