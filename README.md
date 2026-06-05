@@ -123,7 +123,7 @@ The background was optimized, but the touch feel stays intact.
 - Rendering: Canvas UI + optional OpenGL ES 2.0 background layer
 - Device Support: All Android devices, best results on Android 9+
 - Orientation Support: Portrait, landscape, tablet, and desktop-like layouts
-- Style: No lambda expression
+- Style: **No lambda expression**
 
 ## Performance Notes
 
