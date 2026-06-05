@@ -31,7 +31,7 @@ It does not promise perfection, but it is designed with clear intent.
 
 ## Highlights
 
-- Pure Java implementation
+- **Pure Java implementation**
 - Custom welcome dialog
 - Responsive dialog layout
 - Logo support
@@ -42,7 +42,6 @@ It does not promise perfection, but it is designed with clear intent.
 - Rainbow touch drawing effect in `MainActivity.java`
 - Lightweight animated background option
 - Simple SHA-256 signature check
-- Modder-friendly structure
 
 ## New Stuff Added
 
