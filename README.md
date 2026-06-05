@@ -1,15 +1,7 @@
 # Welcome Dialog
 
-[![Social Banner](welcomedialog-banner.jpg)](https://github.com/ridhoae303/WelcomeDialog-for-modders)
-
 Experimental Android welcome dialog component written purely in Java.  
 Simple on the surface, but still packed with enough polish for modders who want a clean custom UI without overcomplicating the setup.
-
-# Preview
-
-> **Please see the preview dialog.**
-
-![Preview Dialog](https://github.com/ridhoae303/WelcomeDialog-for-modders/raw/main/preview/Dialog%20preview.gif)
 
 ## Introduction
 
@@ -18,6 +10,14 @@ Welcome Dialog is a Java-based experimental project for Android, focused on cust
 This project was made with a playful but serious mindset: easy to edit, friendly for modders, and still clean enough for developers who care about performance.
 
 It is also the author's first GitHub repository.
+
+[![Social Banner](welcomedialog-banner.jpg)](https://github.com/ridhoae303/WelcomeDialog-for-modders)
+
+# Preview
+
+> **Please see the preview dialog.**
+
+![Preview Dialog](https://github.com/ridhoae303/WelcomeDialog-for-modders/raw/main/preview/Dialog%20preview.gif)
 
 ## Project Status
 
