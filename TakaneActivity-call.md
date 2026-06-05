@@ -1,5 +1,6 @@
 ## Hardware Accelerated Implementation
 
+```xml
     <!-- //OpenGL ES version -->
     <uses-feature
         android:glEsVersion="0x20000"
@@ -16,9 +17,6 @@
     <uses-feature
         android:name="android.hardware.touchscreen.multitouch.distinct"
         android:required="false" />
-        
-    // Call from any class, external.
-     TakaneActivity.atsuko(this);
      
            <!-- // Add to AndroidManifest -->
            <activity
@@ -27,3 +25,8 @@
             android:exported="false"
             android:hardwareAccelerated="true"
             android:configChanges="orientation|screenSize|keyboardHidden" />
+```
+## Call from any class, external
+```java
+TakaneActivity.atsuko(this);
+```
