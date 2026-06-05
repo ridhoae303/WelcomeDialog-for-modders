@@ -1,6 +1,7 @@
 # Welcome Dialog
 
-Experimental Android welcome dialog component written purely in Java.  
+Experimental Android welcome dialog component written purely in Java.
+
 Simple on the surface, but still packed with enough polish for modders who want a clean custom UI without overcomplicating the setup.
 
 ## Introduction
