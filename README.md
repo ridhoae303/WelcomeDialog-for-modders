@@ -20,6 +20,8 @@ It is also the author's first GitHub repository.
 
 ![Dialog Preview](https://github.com/ridhoae303/WelcomeDialog-for-modders/raw/main/preview/Dialog%20preview.webp)
 
+*The video frame rate has been reduced to make the video appear choppy in order to minimize the impact on video preview performance.*
+
 ## Project Status
 
 - Newly created
