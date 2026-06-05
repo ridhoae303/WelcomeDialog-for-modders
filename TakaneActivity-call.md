@@ -1,8 +1,8 @@
 ## Hardware Accelerated Implementation
 
-    <!-- //OpenGL version -->
+    <!-- //OpenGL ES version -->
     <uses-feature
-        android:glEsVersion="0x30000"
+        android:glEsVersion="0x20000"
         android:required="true" />
     <uses-feature
         android:name="android.hardware.vulkan.version"
