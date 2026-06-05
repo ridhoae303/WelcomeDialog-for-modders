@@ -18,7 +18,7 @@ It is also the author's first GitHub repository.
 
 > **Please see the preview dialog.**
 
-![Preview Dialog](https://github.com/ridhoae303/WelcomeDialog-for-modders/raw/main/preview/Dialog%20preview.gif)
+![Dialog Preview](https://github.com/ridhoae303/WelcomeDialog-for-modders/raw/main/preview/Dialog%20preview.webp)
 
 ## Project Status
 
