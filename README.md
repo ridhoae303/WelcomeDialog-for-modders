@@ -32,7 +32,6 @@ It does not promise perfection, but it is designed with clear intent.
 ## Highlights
 
 - Pure Java implementation
-- No lambda expression
 - Custom welcome dialog
 - Responsive dialog layout
 - Logo support
