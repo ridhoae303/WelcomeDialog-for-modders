@@ -28,4 +28,4 @@
             android:hardwareAccelerated="true"
             android:configChanges="orientation|screenSize|keyboardHidden" />
             
-## Change ‘android:theme’ to match the theme in your application.
+### Change ‘android:theme’ to match the theme in your application.
