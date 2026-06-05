@@ -26,7 +26,9 @@
             android:hardwareAccelerated="true"
             android:configChanges="orientation|screenSize|keyboardHidden" />
 ```
+
 ## Call from any class, external
+
 ```java
 TakaneActivity.atsuko(this);
 ```
