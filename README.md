@@ -270,7 +270,11 @@ A few friendly rules:
 
 This project is licensed under the GNU General Public License v3.
 
-**See the [LICENSE](LICENSE) file for more details.**
+<p align="center">
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-GPLv3%20-purple.svg" alt="License">
+  </a>
+</p>
 
 ## Credits
 
