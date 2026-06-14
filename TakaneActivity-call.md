@@ -21,7 +21,7 @@
            <!-- // Add to AndroidManifest -->
            <activity
             android:name="com.takane.app.TakaneActivity"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
             android:exported="false"
             android:hardwareAccelerated="true"
             android:configChanges="orientation|screenSize|keyboardHidden" />
