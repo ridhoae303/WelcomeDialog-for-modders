@@ -14,13 +14,17 @@ It is also the author's first GitHub repository.
 
 [![Social Banner](welcomedialog-banner.jpg)](https://github.com/ridhoae303/WelcomeDialog-for-modders)
 
-# Preview
+<h2 align="center">Preview</h2>
 
-> **Please see the preview dialog.**
+<p align="center">
+  <strong>Please see the preview dialog.</strong>
+</p>
 
-https://github.com/user-attachments/assets/f5267f1f-3959-4723-93ae-df6af46f5695
+https://github.com/user-attachments/assets/fa035a4f-a32e-4e1f-a8c7-1eba700fa926
 
-*The video frame rate has been reduced to make the video appear choppy in order to minimize the impact on video preview performance.*
+<p align="center">
+  <em>The video frame rate has been reduced to make the video appear choppy in order to minimize the impact on video preview performance.</em>
+</p>
 
 ## Project Status
 
