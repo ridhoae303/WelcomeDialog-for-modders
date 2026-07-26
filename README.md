@@ -12,7 +12,7 @@ This project was made with a playful but serious mindset: easy to edit, friendly
 
 It is also the author's first GitHub repository.
 
-[![Social Banner](welcomedialog-banner.jpg)](https://github.com/ridhoae303/WelcomeDialog-for-modders)
+[![Social Banner](/banner/welcomedialog-banner.jpg)](https://github.com/ridhoae303/WelcomeDialog-for-modders)
 
 <h2 align="center">Preview</h2>
 
@@ -20,7 +20,7 @@ It is also the author's first GitHub repository.
   <strong>Please see the preview dialog.</strong>
 </p>
 
-https://github.com/user-attachments/assets/fa035a4f-a32e-4e1f-a8c7-1eba700fa926
+https://github.com/user-attachments/assets/c714c98e-8558-45be-9d23-bfbcadc259b5
 
 <p align="center">
   <em>The video frame rate has been reduced to make the video appear choppy in order to minimize the impact on video preview performance.</em>
@@ -169,6 +169,9 @@ Some issues that have been addressed:
 - Removed expensive CPU wallpaper blur
 - Improved wallpaper resource cleanup
 - Improved background rendering lifecycle handling
+- **Fixed logo quality degradation during zoom animation** (v1.0.4)
+- **Fixed "FROZEN" text getting chopped off** (v1.0.4)
+- **Fixed low-DPI and landscape layout issues** (v1.0.4)
 
 ## Features Added
 
@@ -230,7 +233,7 @@ Supported formats include:
 > Change the font here:
 
 ```text
-/assets/ridhoae303/ridhoae303.ttf
+/assets/ridhoae303/ridhoae303.ttf.
 ```
 
 ### Background Wallpaper
@@ -241,21 +244,21 @@ Portrait wallpaper:
 /assets/ridhoae303/assets/wallpaper.jpg
 ```
 
-Landscape wallpaper:
+### Landscape wallpaper:
 
 ```text
 /assets/ridhoae303/assets/wallpaper2.jpg
 ```
 
-If you change the file name, update the asset path in `MainActivity.java` too.
+If you change the file name, update the asset path in MainActivity.java too.
 
 ## Easy Anti-Tamper Addition
 
-> **Change your SHA-256 signature hash in `MainActivity.java`.**
+Change your SHA-256 signature hash in MainActivity.java.
 
-Find the signature hash check inside `isSignatureValid()` and replace it with your own release signature hash.
+Find the signature hash check inside isSignatureValid() and replace it with your own release signature hash.
 
-Keep in mind: this is a lightweight check.  
+Keep in mind: this is a lightweight check.
 Treat it as one layer, not the whole security plan.
 
 ## Notes for Modders
@@ -288,7 +291,7 @@ This project is licensed under the GNU General Public License v3.
   </a>
 </p>
 
-### Note from me
+## Note from me
 
-> Small project, serious intent.  
-> Built for learning, experimenting, and sharing with other modders.
+Small project, serious intent.
+Built for learning, experimenting, and sharing with other modders.
