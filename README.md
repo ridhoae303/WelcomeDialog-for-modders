@@ -236,9 +236,9 @@ Supported formats include:
 /assets/ridhoae303/ridhoae303.ttf.
 ```
 
-### Background Wallpaper
+## Background Wallpaper
 
-Portrait wallpaper:
+### Portrait wallpaper:
 
 ```text
 /assets/ridhoae303/assets/wallpaper.jpg
