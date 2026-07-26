@@ -3,7 +3,7 @@
 ```xml
     <!-- //OpenGL ES version -->
     <uses-feature
-        android:glEsVersion="0x20000"
+        android:glEsVersion="0x30000"
         android:required="true" />
     <uses-feature
         android:name="android.hardware.vulkan.version"
@@ -30,5 +30,5 @@
 ## Call from any class, external
 
 ```java
-TakaneActivity.atsuko(this);
+TakaneActivity.Niyaniya(this);
 ```
