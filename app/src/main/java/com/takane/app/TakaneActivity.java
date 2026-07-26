@@ -20,6 +20,8 @@ import android.graphics.Color;
 import android.graphics.Movie;
 import android.graphics.Outline;
 import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
@@ -137,18 +139,21 @@ public class TakaneActivity extends Activity {
     // Scroll toast state
     private boolean hasShownScrollToast = false;
 
-    // Current dialog sizing profile. Tiny DPI screens get cranky, so keep one clean source of truth.
+    // Current dialog sizing profile
     private DialogProfile currentDialogProfile;
     
-    // Custom ImageView for GIF rendering
+    // Custom ImageView for GIF rendering with filtering
     private class GifImageView extends ImageView {
         private Movie movie;
         private long movieStart;
         private float scale;
         private int measuredWidth, measuredHeight;
+        private android.graphics.Paint paint;
 
         public GifImageView(Context context) {
             super(context);
+            paint = new android.graphics.Paint();
+            paint.setFilterBitmap(true); // ensure filtering for smooth scaling
         }
 
         public void setMovie(Movie movie) {
@@ -193,7 +198,7 @@ public class TakaneActivity extends Activity {
                 canvas.save();
                 canvas.scale(scale, scale);
                 movie.draw(canvas, (measuredWidth / scale - movie.width()) / 2,
-                          (measuredHeight / scale - movie.height()) / 2);
+                          (measuredHeight / scale - movie.height()) / 2, paint);
                 canvas.restore();
                 
                 invalidate();
@@ -218,6 +223,14 @@ public class TakaneActivity extends Activity {
         } else {
             textView.setTypeface(Typeface.DEFAULT_BOLD, style);
         }
+    }
+    
+    // Helper to set a filtered bitmap on an ImageView (ensures smooth scaling)
+    private void setFilteredImage(ImageView imageView, Bitmap bitmap) {
+        if (imageView == null || bitmap == null) return;
+        BitmapDrawable drawable = new BitmapDrawable(getResources(), bitmap);
+        drawable.setFilterBitmap(true);
+        imageView.setImageDrawable(drawable);
     }
     
     // Load logo media with multiple format support
@@ -283,6 +296,7 @@ public class TakaneActivity extends Activity {
                         logoContainer.addView(logoImageView);
                         
                         applyOvalClip(logoImageView);
+                        setHardwareLayer(logoImageView);
                     }
                 });
             }
@@ -331,6 +345,7 @@ public class TakaneActivity extends Activity {
                     ImageView newLogoImageView = new ImageView(TakaneActivity.this);
                     newLogoImageView.setLayoutParams(params);
                     logoImageView = newLogoImageView;
+                    setHardwareLayer(videoView);
                 }
             });
         } catch (Exception e) {
@@ -347,9 +362,10 @@ public class TakaneActivity extends Activity {
             is.close();
             
             if (logoImageView != null && logoImageView.getParent() != null) {
-                logoImageView.setImageBitmap(originalBitmap);
+                setFilteredImage(logoImageView, originalBitmap);
                 logoImageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
                 applyOvalClip(logoImageView);
+                setHardwareLayer(logoImageView);
             }
             
         } catch (Exception e) {
@@ -411,6 +427,8 @@ public class TakaneActivity extends Activity {
                         
                         applyRoundedBanner(bannerOuterContainer, getResponsiveCornerRadiusPx());
                         applyRoundedBanner(bannerInnerContainer, getResponsiveInnerCornerRadiusPx());
+                        setHardwareLayer(bannerOuterContainer);
+                        setHardwareLayer(bannerInnerContainer);
                     }
                 });
             }
@@ -459,6 +477,9 @@ public class TakaneActivity extends Activity {
                     
                     applyRoundedBanner(bannerOuterContainer, getResponsiveCornerRadiusPx());
                     applyRoundedBanner(bannerInnerContainer, getResponsiveInnerCornerRadiusPx());
+                    setHardwareLayer(bannerOuterContainer);
+                    setHardwareLayer(bannerInnerContainer);
+                    setHardwareLayer(videoView);
                 }
             });
         } catch (Exception e) {
@@ -487,13 +508,19 @@ public class TakaneActivity extends Activity {
                         RelativeLayout.LayoutParams.MATCH_PARENT
                     );
                     bannerImageView.setLayoutParams(imageParams);
-                    bannerImageView.setImageBitmap(originalBitmap);
+                    // Use filtered drawable
+                    BitmapDrawable drawable = new BitmapDrawable(getResources(), originalBitmap);
+                    drawable.setFilterBitmap(true);
+                    bannerImageView.setImageDrawable(drawable);
                     bannerImageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
                     
                     bannerInnerContainer.addView(bannerImageView);
                     
                     applyRoundedBanner(bannerOuterContainer, getResponsiveCornerRadiusPx());
                     applyRoundedBanner(bannerInnerContainer, getResponsiveInnerCornerRadiusPx());
+                    setHardwareLayer(bannerOuterContainer);
+                    setHardwareLayer(bannerInnerContainer);
+                    setHardwareLayer(bannerImageView);
                 }
             });
             
@@ -546,6 +573,14 @@ public class TakaneActivity extends Activity {
                     });
                 }
             });
+        }
+    }
+    
+    // GPU acceleration helper
+    private void setHardwareLayer(View view) {
+        if (view == null) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            view.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         }
     }
     
@@ -817,8 +852,8 @@ public class TakaneActivity extends Activity {
         scrollView.setOverScrollMode(ScrollView.OVER_SCROLL_NEVER);
         scrollView.setVerticalScrollBarEnabled(false);
         scrollView.setHorizontalScrollBarEnabled(false);
-        scrollView.setClipChildren(false);  // Fix for banner clipping
-        scrollView.setClipToPadding(false); // Allow content to draw outside padding
+        scrollView.setClipChildren(false);
+        scrollView.setClipToPadding(false);
         
         // Dialog content container
         dialogContent = new LinearLayout(this);
@@ -828,8 +863,8 @@ public class TakaneActivity extends Activity {
         ));
         dialogContent.setOrientation(LinearLayout.VERTICAL);
         dialogContent.setPadding(dialogProfile.contentSidePaddingPx, dialogProfile.contentTopPaddingPx, dialogProfile.contentSidePaddingPx, dialogProfile.contentBottomPaddingPx);
-        dialogContent.setClipChildren(false);  // Fix for banner clipping
-        dialogContent.setClipToPadding(false); // Allow content to draw outside padding
+        dialogContent.setClipChildren(false);
+        dialogContent.setClipToPadding(false);
         
         // Header layout with banner and logo
         RelativeLayout headerLayout = new RelativeLayout(this);
@@ -891,6 +926,7 @@ public class TakaneActivity extends Activity {
         logoImageView.setLayoutParams(logoParams);
         logoImageView.setAlpha(0f);
         logoImageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        setHardwareLayer(logoImageView);
         
         // Logo border
         RelativeLayout logoBorderContainer = new RelativeLayout(this);
@@ -940,9 +976,13 @@ public class TakaneActivity extends Activity {
         appIconParams.addRule(RelativeLayout.CENTER_IN_PARENT);
         appIconImageView.setLayoutParams(appIconParams);
         appIconImageView.setAlpha(0f);
+        setHardwareLayer(appIconImageView);
         
         try {
-            android.graphics.drawable.Drawable appIcon = getPackageManager().getApplicationIcon(getPackageName());
+            Drawable appIcon = getPackageManager().getApplicationIcon(getPackageName());
+            if (appIcon instanceof BitmapDrawable) {
+                ((BitmapDrawable) appIcon).setFilterBitmap(true);
+            }
             appIconImageView.setImageDrawable(appIcon);
             appIconImageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
             applyOvalClip(appIconImageView);
@@ -1327,6 +1367,8 @@ public class TakaneActivity extends Activity {
         descText.setMaxWidth(dialogProfile.descMaxWidthPx);
         descText.setLineSpacing(dialogProfile.lineSpacingPx, 1.2f);
         descText.setAlpha(0f);
+        descText.setSingleLine(false);
+        descText.setEllipsize(null);
         
         descText.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -1428,7 +1470,8 @@ public class TakaneActivity extends Activity {
         
         timerText = new TextView(this);
         LinearLayout.LayoutParams timerTextParams = new LinearLayout.LayoutParams(
-            dialogProfile.timerWidthPx, LinearLayout.LayoutParams.WRAP_CONTENT
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
         );
         timerText.setLayoutParams(timerTextParams);
         timerText.setText("15s");
@@ -1436,6 +1479,8 @@ public class TakaneActivity extends Activity {
         timerText.setTextColor(Color.parseColor("#FFD700"));
         applyFontToTextView(timerText, Typeface.BOLD);
         timerText.setGravity(Gravity.CENTER);
+        timerText.setSingleLine(true);
+        timerText.setEllipsize(null);
         timerLayout.addView(timerText);
         
         LinearLayout checkboxesContainer = new LinearLayout(this);
@@ -1641,10 +1686,10 @@ public class TakaneActivity extends Activity {
         dialogContent.addView(takaneText);
         dialogContent.addView(descText);
         dialogContent.addView(checkboxTimerLayout);
+        dialogContent.addView(buttonContainer);
         
         scrollView.addView(dialogContent);
         dialogContainer.addView(scrollView);
-        dialogContainer.addView(buttonContainer);
         contentLayer.addView(dialogContainer);
         rootLayout.addView(contentLayer);
         
@@ -1711,11 +1756,9 @@ public class TakaneActivity extends Activity {
             public void run() {
                 if (dialogContainer == null || contentLayer == null) return;
                 
-                // Use AnimatorSet for coordinated animation
                 AnimatorSet entranceSet = new AnimatorSet();
                 List<Animator> animators = new ArrayList<>();
                 
-                // Dialog container animations
                 ObjectAnimator dialogAlpha = ObjectAnimator.ofFloat(dialogContainer, "alpha", 0f, 1f);
                 ObjectAnimator dialogScaleX = ObjectAnimator.ofFloat(dialogContainer, "scaleX", 0.85f, 1f);
                 ObjectAnimator dialogScaleY = ObjectAnimator.ofFloat(dialogContainer, "scaleY", 0.85f, 1f);
@@ -1724,13 +1767,11 @@ public class TakaneActivity extends Activity {
                 animators.add(dialogScaleX);
                 animators.add(dialogScaleY);
                 
-                // Content layer slide up
                 ObjectAnimator slideUp = ObjectAnimator.ofFloat(contentLayer, "translationY", displayHeight, 0);
                 slideUp.setDuration(550);
                 slideUp.setInterpolator(new DecelerateInterpolator(1.5f));
                 animators.add(slideUp);
                 
-                // Play all animations together
                 entranceSet.playTogether(animators);
                 entranceSet.setDuration(450);
                 entranceSet.addListener(new AnimatorListenerAdapter() {
@@ -1746,7 +1787,6 @@ public class TakaneActivity extends Activity {
                         startMetadataAnimations();
                         setupListeners();
                         loadPreferences();
-                        // Start timer only if not frozen
                         if (!isTimerFrozen) {
                             startAutoCloseTimer(timeRemainingMillis);
                         }
@@ -1768,7 +1808,6 @@ public class TakaneActivity extends Activity {
     }
     
     private void startLogoAndBannerAnimations() {
-        // Logo animation
         if (logoImageView != null && logoImageView.getParent() != null) {
             logoImageView.setAlpha(1f);
             logoImageView.setScaleX(0.5f);
@@ -1781,7 +1820,6 @@ public class TakaneActivity extends Activity {
                 .start();
         }
         
-        // App icon animation
         if (appIconImageView != null && appIconImageView.getParent() != null) {
             appIconImageView.setAlpha(1f);
             appIconImageView.setScaleX(0.5f);
@@ -1794,7 +1832,6 @@ public class TakaneActivity extends Activity {
                 .start();
         }
         
-        // Banner animation
         if (bannerOuterContainer != null && bannerOuterContainer.getParent() != null) {
             bannerOuterContainer.setAlpha(0f);
             bannerOuterContainer.setScaleX(0.85f);
@@ -1879,7 +1916,6 @@ public class TakaneActivity extends Activity {
                             timerText.setText("FROZEN");
                             timerText.setTextColor(Color.parseColor("#00ADB5"));
                         }
-                        // Apply freeze animation
                         TextView freezeText = (TextView) ((LinearLayout) timeFreezeWrapper.getParent()).getChildAt(1);
                         if (freezeText != null) {
                             animateFreezeOn(freezeText);
@@ -1887,7 +1923,6 @@ public class TakaneActivity extends Activity {
                         saveTimerState();
                     } else {
                         isTimerFrozen = false;
-                        // Remove freeze animation
                         TextView freezeText = (TextView) ((LinearLayout) timeFreezeWrapper.getParent()).getChildAt(1);
                         if (freezeText != null) {
                             animateFreezeOff(freezeText);
@@ -1941,7 +1976,6 @@ public class TakaneActivity extends Activity {
         editor.apply();
     }
     
-    // Reset timer completely when dialog is closed
     private void resetTimerCompletely() {
         if (countDownTimer != null) {
             countDownTimer.cancel();
@@ -1969,7 +2003,6 @@ public class TakaneActivity extends Activity {
         SharedPreferences prefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
         boolean dontShow = prefs.getBoolean(DONT_SHOW_KEY, false);
         
-        // No real-time subtraction - timer only runs in active session
         isTimerFrozen = prefs.getBoolean(IS_FROZEN_KEY, false);
         timeRemainingMillis = prefs.getLong(TIMER_REMAINING_KEY, 15000);
         
@@ -2236,7 +2269,6 @@ public class TakaneActivity extends Activity {
             .setInterpolator(new DecelerateInterpolator())
             .start();
         
-        // Glow animation for icy effect
         freezeGlowAnimator = ObjectAnimator.ofInt(ice, "alpha", 50, 180);
         freezeGlowAnimator.setEvaluator(new ArgbEvaluator());
         freezeGlowAnimator.setDuration(600);
@@ -2334,71 +2366,88 @@ public class TakaneActivity extends Activity {
                 || uiMode == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION;
 
         boolean roomy = bigScreen || desktopLike;
-        float widthScale = clampFloat(shortDp / 392f, 0.78f, 1.0f);
+        
+        float densityFactor = 1.0f;
+        if (density < 1.5f) {
+            densityFactor = 0.78f;
+        } else if (density < 2.0f) {
+            densityFactor = 0.88f;
+        }
+        if (landscape) {
+            densityFactor *= 0.82f;
+        }
+        densityFactor = Math.max(0.65f, Math.min(1.0f, densityFactor));
+        
+        float widthScale = clampFloat(shortDp / 392f, 0.70f, 1.0f) * densityFactor;
         float heightBase = landscape ? 430f : 720f;
-        float heightScale = clampFloat(heightDp / heightBase, 0.74f, 1.0f);
+        float heightScale = clampFloat(heightDp / heightBase, 0.70f, 1.0f) * densityFactor;
         float uiScale = roomy ? 1.0f : Math.min(widthScale, heightScale);
+        uiScale = clampFloat(uiScale, 0.60f, 1.0f);
 
         DialogProfile profile = new DialogProfile();
         profile.uiScale = uiScale;
-        profile.textScale = roomy ? 1.0f : clampFloat(uiScale, 0.84f, 1.0f);
+        profile.textScale = roomy ? 1.0f : clampFloat(uiScale, 0.78f, 1.0f);
 
-        profile.sideMarginPx = scaledDp(16, uiScale, 8);
-        profile.bottomMarginPx = scaledDp(16, uiScale, 8);
+        int marginDp = landscape ? 8 : 16;
+        profile.sideMarginPx = scaledDp(marginDp, uiScale, 4);
+        profile.bottomMarginPx = scaledDp(marginDp, uiScale, 4);
 
         int availableWidth = Math.max(1, screenWidth - (profile.sideMarginPx * 2));
-        int baseWidthDp = roomy ? (landscape ? 500 : 460) : 420;
+        int baseWidthDp = roomy ? (landscape ? 460 : 440) : (landscape ? 360 : 400);
         int targetWidth = dpToPx(baseWidthDp);
         if (roomy) {
-            int wideCap = (int) (screenWidth * (landscape ? 0.58f : 0.76f));
-            targetWidth = Math.min(targetWidth, Math.max(dpToPx(360), wideCap));
+            int wideCap = (int) (screenWidth * (landscape ? 0.55f : 0.72f));
+            targetWidth = Math.min(targetWidth, Math.max(dpToPx(320), wideCap));
         }
 
-        int widthFloor = Math.min(availableWidth, dpToPx(280));
+        int widthFloor = Math.min(availableWidth, dpToPx(260));
         profile.dialogWidthPx = Math.max(widthFloor, Math.min(targetWidth, availableWidth));
 
-        int topBreathingRoom = scaledDp(landscape ? 12 : 24, uiScale, 6);
-        profile.dialogMaxHeightPx = Math.max(dpToPx(240), screenHeight - profile.bottomMarginPx - topBreathingRoom);
+        int topBreathingRoom = scaledDp(landscape ? 8 : 20, uiScale, 4);
+        profile.dialogMaxHeightPx = Math.max(dpToPx(200), screenHeight - profile.bottomMarginPx - topBreathingRoom);
         profile.dialogMaxHeightPx = Math.min(profile.dialogMaxHeightPx, Math.max(1, screenHeight - profile.bottomMarginPx));
-        profile.dialogMinHeightPx = Math.min(scaledDp(380, uiScale, 260), profile.dialogMaxHeightPx);
+        if (landscape) {
+            profile.dialogMaxHeightPx = (int) (profile.dialogMaxHeightPx * 0.75f);
+        }
+        profile.dialogMinHeightPx = Math.min(scaledDp(340, uiScale, 220), profile.dialogMaxHeightPx);
 
-        profile.cornerRadiusPx = scaledDp(25, uiScale, 16);
+        profile.cornerRadiusPx = scaledDp(22, uiScale, 14);
         profile.borderWidthPx = scaledDp(3, uiScale, 2);
         profile.thinBorderWidthPx = scaledDp(2, uiScale, 1);
-        profile.contentSidePaddingPx = scaledDp(25, uiScale, 16);
-        profile.contentTopPaddingPx = scaledDp(30, uiScale, 18);
-        profile.contentBottomPaddingPx = scaledDp(10, uiScale, 6);
-        profile.bannerHeightPx = scaledDp(180, uiScale, 120);
-        profile.mediaInsetPx = scaledDp(4, uiScale, 3);
-        profile.logoContainerSizePx = scaledDp(150, uiScale, 104);
-        profile.logoSizePx = scaledDp(140, uiScale, 96);
-        profile.logoTopMarginPx = scaledDp(95, uiScale, 64);
-        profile.appInfoTopMarginPx = scaledDp(20, uiScale, 10);
-        profile.appInfoVerticalPaddingPx = scaledDp(20, uiScale, 10);
-        profile.appIconContainerSizePx = scaledDp(70, uiScale, 52);
-        profile.appIconSizePx = scaledDp(58, uiScale, 42);
-        profile.appIconRightMarginPx = scaledDp(15, uiScale, 8);
+        profile.contentSidePaddingPx = scaledDp(20, uiScale, 12);
+        profile.contentTopPaddingPx = scaledDp(landscape ? 16 : 26, uiScale, 10);
+        profile.contentBottomPaddingPx = scaledDp(8, uiScale, 4);
+        profile.bannerHeightPx = scaledDp(landscape ? 120 : 160, uiScale, 80);
+        profile.mediaInsetPx = scaledDp(3, uiScale, 2);
+        profile.logoContainerSizePx = scaledDp(landscape ? 110 : 140, uiScale, 80);
+        profile.logoSizePx = scaledDp(landscape ? 100 : 130, uiScale, 72);
+        profile.logoTopMarginPx = scaledDp(landscape ? 60 : 85, uiScale, 40);
+        profile.appInfoTopMarginPx = scaledDp(landscape ? 10 : 18, uiScale, 6);
+        profile.appInfoVerticalPaddingPx = scaledDp(landscape ? 10 : 18, uiScale, 6);
+        profile.appIconContainerSizePx = scaledDp(landscape ? 56 : 64, uiScale, 40);
+        profile.appIconSizePx = scaledDp(landscape ? 46 : 54, uiScale, 32);
+        profile.appIconRightMarginPx = scaledDp(landscape ? 8 : 14, uiScale, 4);
         profile.dividerHeightPx = scaledDp(2, uiScale, 1);
-        profile.dividerVerticalMarginPx = scaledDp(10, uiScale, 6);
-        profile.smallTopMarginPx = scaledDp(15, uiScale, 8);
-        profile.tinyVerticalMarginPx = scaledDp(6, uiScale, 4);
-        profile.descBottomMarginPx = scaledDp(25, uiScale, 12);
-        profile.lineSpacingPx = scaledDp(4, uiScale, 2);
-        profile.checkboxBottomPaddingPx = scaledDp(20, uiScale, 10);
-        profile.checkboxOuterPaddingPx = scaledDp(8, uiScale, 5);
-        profile.checkboxWrapperSizePx = scaledDp(36, uiScale, 28);
-        profile.checkboxTouchSizePx = scaledDp(24, uiScale, 20);
-        profile.checkboxDotSizePx = scaledDp(20, uiScale, 16);
-        profile.timerWidthPx = scaledDp(70, uiScale, 52);
-        profile.buttonSidePaddingPx = scaledDp(25, uiScale, 14);
-        profile.buttonBottomPaddingPx = scaledDp(25, uiScale, 14);
-        profile.buttonHorizontalPaddingPx = scaledDp(20, uiScale, 12);
-        profile.buttonVerticalPaddingPx = scaledDp(16, uiScale, 10);
-        profile.buttonGapPx = scaledDp(10, uiScale, 6);
+        profile.dividerVerticalMarginPx = scaledDp(8, uiScale, 4);
+        profile.smallTopMarginPx = scaledDp(12, uiScale, 6);
+        profile.tinyVerticalMarginPx = scaledDp(4, uiScale, 2);
+        profile.descBottomMarginPx = scaledDp(landscape ? 12 : 20, uiScale, 8);
+        profile.lineSpacingPx = scaledDp(3, uiScale, 2);
+        profile.checkboxBottomPaddingPx = scaledDp(landscape ? 10 : 16, uiScale, 6);
+        profile.checkboxOuterPaddingPx = scaledDp(6, uiScale, 4);
+        profile.checkboxWrapperSizePx = scaledDp(30, uiScale, 20);
+        profile.checkboxTouchSizePx = scaledDp(20, uiScale, 14);
+        profile.checkboxDotSizePx = scaledDp(16, uiScale, 12);
+        profile.timerWidthPx = scaledDp(60, uiScale, 40);
+        profile.buttonSidePaddingPx = scaledDp(18, uiScale, 10);
+        profile.buttonBottomPaddingPx = scaledDp(18, uiScale, 10);
+        profile.buttonHorizontalPaddingPx = scaledDp(16, uiScale, 10);
+        profile.buttonVerticalPaddingPx = scaledDp(12, uiScale, 8);
+        profile.buttonGapPx = scaledDp(8, uiScale, 4);
 
         int maxTextWidth = Math.max(1, profile.dialogWidthPx - (profile.contentSidePaddingPx * 2));
-        int minTextWidth = Math.min(maxTextWidth, dpToPx(180));
-        profile.descMaxWidthPx = Math.max(minTextWidth, Math.min(scaledDp(350, uiScale, 220), maxTextWidth));
+        int minTextWidth = Math.min(maxTextWidth, dpToPx(160));
+        profile.descMaxWidthPx = Math.max(minTextWidth, Math.min(scaledDp(320, uiScale, 180), maxTextWidth));
 
         return profile;
     }
@@ -2446,7 +2495,7 @@ public class TakaneActivity extends Activity {
 
     private float scaledSp(float sp) {
         float scale = currentDialogProfile == null ? 1.0f : currentDialogProfile.textScale;
-        return Math.max(10.0f, sp * scale);
+        return Math.max(9.0f, sp * scale);
     }
 
     private int scaledDp(int dp, float scale, int minDp) {
@@ -2492,7 +2541,6 @@ public class TakaneActivity extends Activity {
         }
     }
     
-    // Auto close timer with optimized saving
     private void startAutoCloseTimer(long startMillis) {
         if (countDownTimer != null) {
             countDownTimer.cancel();
@@ -2542,7 +2590,6 @@ public class TakaneActivity extends Activity {
         }
     }
     
-    // Handle timer finish
     private void autoClose() {
         if (currentState != DialogState.ACTIVE || isTimerFrozen) {
             return;
@@ -2569,7 +2616,6 @@ public class TakaneActivity extends Activity {
         }, 1000);
     }
     
-    // Manual close with animation
     private void closeDialogManually() {
         if (currentState != DialogState.ACTIVE) return;
         currentState = DialogState.CLOSING_MANUALLY;
@@ -2642,7 +2688,6 @@ public class TakaneActivity extends Activity {
             .start();
     }
     
-    // Auto close with animation
     private void closeDialogAuto() {
         if (currentState != DialogState.ACTIVE) return;
         currentState = DialogState.CLOSING_AUTO;
@@ -2696,7 +2741,6 @@ public class TakaneActivity extends Activity {
             .start();
     }
     
-    // Community link opener with fallback
     private void openCommunityLink() {
         try {
             Intent whatsappIntent = new Intent(Intent.ACTION_VIEW);
@@ -2832,8 +2876,11 @@ public class TakaneActivity extends Activity {
         }
     }
     
-    // Static method to launch dialog from anywhere
-    public static void atsuko(Context context) {
+    /**
+     * Public entry point to show the dialog.
+     * Renamed from atsuko to Niyaniya as requested.
+     */
+    public static void Niyaniya(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         boolean dontShow = prefs.getBoolean(DONT_SHOW_KEY, false);
         
@@ -2844,7 +2891,6 @@ public class TakaneActivity extends Activity {
         }
     }
     
-    // Helper to ensure clip system is applied consistently
     private void ensureClipSystem() {
         if (logoImageView != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             logoImageView.post(new Runnable() {
