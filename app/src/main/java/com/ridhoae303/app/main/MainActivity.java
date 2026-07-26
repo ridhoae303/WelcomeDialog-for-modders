@@ -1,25 +1,27 @@
 // Created by ridhoae303 — https://github.com/ridhoae303
-// No lambda expression.
+// No lambda expression
 
 package com.ridhoae303.app.main;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.content.res.Configuration;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.Signature;
-import android.content.pm.SigningInfo;
-import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.PixelFormat;
+import android.graphics.RectF;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
+import android.graphics.RadialGradient;
+import android.graphics.Shader;
 import android.graphics.SurfaceTexture;
 import android.opengl.EGL14;
 import android.opengl.EGLConfig;
@@ -27,103 +29,97 @@ import android.opengl.EGLContext;
 import android.opengl.EGLDisplay;
 import android.opengl.EGLSurface;
 import android.opengl.GLES20;
-import android.os.Build;
 import android.os.Bundle;
+import android.os.Build;
+import android.content.pm.Signature;
+import android.content.pm.SigningInfo;
+import android.view.Gravity;
 import android.util.SparseArray;
 import android.view.MotionEvent;
-import android.view.TextureView;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
+import android.widget.TextView;
 import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.takane.app.TakaneActivity;
 
 import java.io.InputStream;
+import java.security.MessageDigest;
+import android.view.TextureView;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
-import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
 
 public class MainActivity extends Activity {
 
+    @Override
+    public void onPointerCaptureChanged(boolean hasCapture) {
+    }
+
+
     private FrameLayout backgroundContainer;
     private FrameLayout wallpaperLayer;
-    private GpuSmokeTextureView smokeTextureView;
     private FrameLayout currentWallpaperGroup;
+    private SmokeGLView smokeBackgroundView;
     private ImageView mainImage;
+    private GradientOverlayView gradientOverlay;
     private RainbowDrawingView rainbowDrawingView;
-
     private String currentWallpaperAsset = "";
-
     private static final String WALLPAPER_PORTRAIT_ASSET = "ridhoae303/assets/wallpaper.jpg";
     private static final String WALLPAPER_LANDSCAPE_ASSET = "ridhoae303/assets/wallpaper2.jpg";
-
-    private static final long WALLPAPER_FADE_OUT_DURATION = 260L;
-    private static final long WALLPAPER_FADE_IN_DURATION = 320L;
+    private static final long WALLPAPER_FADE_OUT_DURATION = 360L;
+    private static final long WALLPAPER_FADE_IN_DURATION = 420L;
     private static final long WALLPAPER_ZOOM_DURATION = 180L;
-    private static final long WALLPAPER_ENTRANCE_DURATION = 440L;
-
+    private static final long WALLPAPER_ENTRANCE_DURATION = 540L;
     private float wallpaperScale = 1.0f;
     private float wallpaperParallaxX = 0.0f;
     private float wallpaperParallaxY = 0.0f;
     private boolean wallpaperTouchZoomActive = false;
     private boolean wallpaperTransitionRunning = false;
     private boolean homeEntrancePlayed = false;
-
     private final ArrayList<FrameLayout> oldWallpaperGroups = new ArrayList<FrameLayout>();
     private long lastBackPressed;
-
+    
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         getWindow().setFlags(
-                WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN
-        );
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED);
+        WindowManager.LayoutParams.FLAG_FULLSCREEN,
+        WindowManager.LayoutParams.FLAG_FULLSCREEN
+    );
         getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.BLACK));
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
 
-        try {
-            FrameLayout rootLayout = new FrameLayout(this);
-            rootLayout.setClipChildren(false);
-            rootLayout.setClipToPadding(false);
+    try {
+        FrameLayout rootLayout = new FrameLayout(this);
+        rootLayout.setClipChildren(false);
+        rootLayout.setClipToPadding(false);
+        setupBackground(rootLayout);
+        setupGradientOverlay(rootLayout);
+        setupRainbowDrawing(rootLayout);
+        setContentView(rootLayout);
 
-            setupBackground(rootLayout);
-            setupRainbowDrawing(rootLayout);
-            setContentView(rootLayout);
-
-            checkSignatureAndLaunch();
-            TakaneActivity.atsuko(this);
-        } catch (Exception e) {
-            showToast("Error initializing application");
-            finish();
+        if (!checkSignatureAndLaunch()) {
+            return;
         }
+        TakaneActivity.Niyaniya(this);
+            } catch (SecurityException e) {
+        throw e;
+            } catch (Exception e) {
+        showToast("Error initializing application");
+        finish();
     }
+}
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (smokeTextureView != null) {
-            smokeTextureView.resumeRenderer();
-        }
-    }
-
-    @Override
-    protected void onPause() {
-        if (smokeTextureView != null) {
-            smokeTextureView.pauseRenderer();
-        }
-        super.onPause();
-    }
 
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
@@ -133,11 +129,9 @@ public class MainActivity extends Activity {
         if (rainbowDrawingView != null) {
             rainbowDrawingView.resetWallpaperMotion();
         }
-        if (smokeTextureView != null) {
-            smokeTextureView.resetScene();
-        }
         applyWallpaperForDevice(true);
     }
+
 
     private void startHomeEntranceAnimation(final FrameLayout wallpaperGroup) {
         if (wallpaperGroup == null) {
@@ -146,8 +140,8 @@ public class MainActivity extends Activity {
 
         wallpaperGroup.animate().cancel();
         wallpaperGroup.setAlpha(0.0f);
-        wallpaperGroup.setScaleX(1.018f);
-        wallpaperGroup.setScaleY(1.018f);
+        wallpaperGroup.setScaleX(1.025f);
+        wallpaperGroup.setScaleY(1.025f);
 
         wallpaperGroup.animate()
                 .alpha(1.0f)
@@ -166,9 +160,7 @@ public class MainActivity extends Activity {
     }
 
     private void animateWallpaperZoom(boolean touchDown) {
-        wallpaperTouchZoomActive = touchDown;
-        wallpaperScale = getCurrentWallpaperScale();
-        applyWallpaperTransform(true);
+        // Wallpaper touch zoom is disabled.
     }
 
     private void resetWallpaperParallax() {
@@ -178,12 +170,10 @@ public class MainActivity extends Activity {
     }
 
     private void setWallpaperParallax(float x, float y) {
-        wallpaperParallaxX = clamp(x, -dp(18), dp(18));
-        wallpaperParallaxY = clamp(y, -dp(18), dp(18));
-        applyWallpaperTranslationToView(mainImage, wallpaperParallaxX, wallpaperParallaxY);
+        // Wallpaper parallax is disabled.
     }
 
-    private void applyWallpaperTranslationToView(ImageView imageView, float translationX, float translationY) {
+    private void applyWallpaperTranslationToView(View imageView, float translationX, float translationY) {
         if (imageView == null) return;
         imageView.setTranslationX(translationX);
         imageView.setTranslationY(translationY);
@@ -200,11 +190,15 @@ public class MainActivity extends Activity {
     }
 
     private float getIdleWallpaperScale() {
-        return isTabletOrPc() ? 1.05f : 1.025f;
+        return isTabletOrPc() ? 1.06f : 1.0f;
     }
 
     private float getTouchWallpaperScale() {
-        return isTabletOrPc() ? 1.025f : 1.01f;
+        return isTabletOrPc() ? 1.03f : 1.0f;
+    }
+
+    private float getSmokeWallpaperScale() {
+        return isTabletOrPc() ? 1.03f : 1.0f;
     }
 
     private void applyWallpaperTransform(boolean animate) {
@@ -216,6 +210,25 @@ public class MainActivity extends Activity {
                 wallpaperParallaxY,
                 animate
         );
+
+        if (smokeBackgroundView != null) {
+            float smokeScale = getSmokeWallpaperScale();
+            if (animate) {
+                smokeBackgroundView.animate()
+                        .scaleX(smokeScale)
+                        .scaleY(smokeScale)
+                        .translationX(wallpaperParallaxX * 0.18f)
+                        .translationY(wallpaperParallaxY * 0.18f)
+                        .setDuration(WALLPAPER_ZOOM_DURATION)
+                        .setInterpolator(new AccelerateDecelerateInterpolator())
+                        .start();
+            } else {
+                smokeBackgroundView.setScaleX(smokeScale);
+                smokeBackgroundView.setScaleY(smokeScale);
+                smokeBackgroundView.setTranslationX(wallpaperParallaxX * 0.18f);
+                smokeBackgroundView.setTranslationY(wallpaperParallaxY * 0.18f);
+            }
+        }
     }
 
     private void applyWallpaperTransformToView(ImageView imageView, float scale, float translationX, float translationY, boolean animate) {
@@ -245,14 +258,29 @@ public class MainActivity extends Activity {
         return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
     }
 
+    private int safeTopMargin() {
+        int margin = dp(18);
+        try {
+            int id = getResources().getIdentifier("status_bar_height", "dimen", "android");
+            if (id > 0) {
+                int status = getResources().getDimensionPixelSize(id);
+                if (status > 0) {
+                    margin = Math.max(margin, status + dp(8));
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        return margin;
+    }
+
     private void setupBackground(FrameLayout rootLayout) {
         backgroundContainer = new FrameLayout(this);
         backgroundContainer.setClipChildren(false);
         backgroundContainer.setClipToPadding(false);
         backgroundContainer.setBackgroundColor(Color.BLACK);
         backgroundContainer.setLayoutParams(new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
         ));
 
         wallpaperLayer = new FrameLayout(this);
@@ -260,20 +288,18 @@ public class MainActivity extends Activity {
         wallpaperLayer.setClipToPadding(false);
         wallpaperLayer.setBackgroundColor(Color.BLACK);
         wallpaperLayer.setLayoutParams(new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ));
+
+        smokeBackgroundView = new SmokeGLView(this);
+        smokeBackgroundView.setLayoutParams(new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
         ));
 
         backgroundContainer.addView(wallpaperLayer);
-
-        smokeTextureView = new GpuSmokeTextureView(this);
-        smokeTextureView.setLayoutParams(new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT
-        ));
-        smokeTextureView.setAlpha(0.72f);
-        backgroundContainer.addView(smokeTextureView);
-
+        backgroundContainer.addView(smokeBackgroundView);
         rootLayout.addView(backgroundContainer);
 
         backgroundContainer.post(new Runnable() {
@@ -282,6 +308,13 @@ public class MainActivity extends Activity {
                 applyWallpaperForDevice(false);
             }
         });
+    }
+
+    private Bitmap createBlurredBitmap(Bitmap src) {
+        // Intentionally disabled.
+        // The previous CPU blur path caused long black-screen startup and high RAM usage.
+        // Background smoke is now rendered by SmokeGLView on GPU with a capped frame rate.
+        return null;
     }
 
     private Bitmap decodeWallpaperBitmap(String assetPath) {
@@ -303,7 +336,7 @@ public class MainActivity extends Activity {
             boundsStream = null;
 
             BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+            options.inPreferredConfig = Bitmap.Config.RGB_565;
             options.inDither = true;
             options.inScaled = false;
             options.inSampleSize = calculateInSampleSize(bounds, targetWidth, targetHeight);
@@ -333,10 +366,6 @@ public class MainActivity extends Activity {
             int height = options.outHeight;
             int width = options.outWidth;
             int inSampleSize = 1;
-
-            if (height <= 0 || width <= 0) {
-                return 1;
-            }
 
             if (height > reqHeight || width > reqWidth) {
                 int halfHeight = height / 2;
@@ -565,7 +594,8 @@ public class MainActivity extends Activity {
 
         try {
             Bitmap original = decodeWallpaperBitmap(assetPath);
-            ImageView main = createWallpaperImageView();
+
+            ImageView main = createWallpaperImageView(true);
 
             if (original != null) {
                 main.setImageBitmap(original);
@@ -574,6 +604,7 @@ public class MainActivity extends Activity {
             }
 
             wallpaperScale = getCurrentWallpaperScale();
+
             main.setScaleX(wallpaperScale);
             main.setScaleY(wallpaperScale);
             main.setTranslationX(wallpaperParallaxX);
@@ -594,7 +625,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    private ImageView createWallpaperImageView() {
+    private ImageView createWallpaperImageView(boolean coverScreen) {
         ImageView imageView = new ImageView(this);
         imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
         imageView.setAdjustViewBounds(false);
@@ -623,196 +654,450 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void setupRainbowDrawing(FrameLayout rootLayout) {
-        rainbowDrawingView = new RainbowDrawingView(this);
-        rootLayout.addView(rainbowDrawingView, new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT
+    private void setupGradientOverlay(FrameLayout rootLayout) {
+        gradientOverlay = new GradientOverlayView(this);
+        gradientOverlay.setLayoutParams(new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
         ));
+        rootLayout.addView(gradientOverlay);
     }
 
-    private void checkSignatureAndLaunch() {
+    private void setupRainbowDrawing(FrameLayout rootLayout) {
+        rainbowDrawingView = new RainbowDrawingView(this);
+        rootLayout.addView(rainbowDrawingView);
+    }
+
+    private boolean checkSignatureAndLaunch() {
         if (!isSignatureValid()) {
             showToast("Invalid signature!");
             finish();
+            return false;
         }
+        return true;
     }
 
-    private static class GpuSmokeTextureView extends TextureView implements TextureView.SurfaceTextureListener {
-        private RenderThread renderThread;
-        private volatile boolean paused = false;
-        private volatile boolean surfaceReady = false;
-        private int surfaceWidth = 1;
-        private int surfaceHeight = 1;
-        private float sceneSeed;
-        private final Random seedRandom = new Random();
+    private class GlossyButton extends TextView {
+        private Paint fillPaint;
+        private Paint strokePaint;
+        private Paint shinePaint;
+        private RectF buttonRect;
+        private Path buttonPath;
+        private boolean shineRunning;
+        private boolean pressedInside;
+        private long shineStartTime;
+        private Runnable shineStarter;
+        private static final long SHINE_DURATION = 2600L;
+        private static final long SHINE_FRAME_DELAY = 16L;
 
-        public GpuSmokeTextureView(Context context) {
+        public GlossyButton(Context context) {
             super(context);
-            setSurfaceTextureListener(this);
-            setOpaque(false);
-            sceneSeed = seedRandom.nextFloat() * 1000.0f;
+            setTextColor(Color.WHITE);
+            setTextSize(13f);
+            setGravity(Gravity.CENTER);
+            setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+            setIncludeFontPadding(false);
+            setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.NORMAL);
+            setAllCaps(false);
+            setClickable(true);
+            setFocusable(true);
+            setBackgroundColor(Color.TRANSPARENT);
+            setLayerType(View.LAYER_TYPE_HARDWARE, null);
+
+            fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            fillPaint.setStyle(Paint.Style.FILL);
+
+            strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            strokePaint.setStyle(Paint.Style.STROKE);
+            strokePaint.setStrokeWidth(dp(1));
+
+            shinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            shinePaint.setStyle(Paint.Style.FILL);
+
+            buttonRect = new RectF();
+            buttonPath = new Path();
         }
 
-        public void pauseRenderer() {
-            paused = true;
+        public void startShineAfter(long delay) {
+            stopShineStarter();
+
+            shineStarter = new Runnable() {
+                @Override
+                public void run() {
+                    startShine();
+                }
+            };
+            postDelayed(shineStarter, delay);
         }
 
-        public void resumeRenderer() {
-            paused = false;
-            RenderThread thread = renderThread;
-            if (thread != null) {
-                thread.wakeUp();
-            }
+        public void startShine() {
+            shineRunning = true;
+            shineStartTime = System.currentTimeMillis();
+            invalidate();
         }
 
-        public void resetScene() {
-            sceneSeed = seedRandom.nextFloat() * 1000.0f;
-            RenderThread thread = renderThread;
-            if (thread != null) {
-                thread.setSceneSeed(sceneSeed);
-                thread.setSurfaceSize(surfaceWidth, surfaceHeight);
-                thread.wakeUp();
+        private void stopShineStarter() {
+            if (shineStarter != null) {
+                removeCallbacks(shineStarter);
+                shineStarter = null;
             }
         }
 
         @Override
-        public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-            surfaceReady = true;
-            surfaceWidth = Math.max(1, width);
-            surfaceHeight = Math.max(1, height);
-            stopRendererThread();
-            renderThread = new RenderThread(surface, surfaceWidth, surfaceHeight, sceneSeed, this);
-            renderThread.start();
+        protected void onDetachedFromWindow() {
+            shineRunning = false;
+            stopShineStarter();
+            super.onDetachedFromWindow();
         }
 
         @Override
-        public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-            surfaceWidth = Math.max(1, width);
-            surfaceHeight = Math.max(1, height);
-            RenderThread thread = renderThread;
-            if (thread != null) {
-                thread.setSurfaceSize(surfaceWidth, surfaceHeight);
-                thread.wakeUp();
+        protected void onDraw(Canvas canvas) {
+            int width = getWidth();
+            int height = getHeight();
+
+            if (width <= 0 || height <= 0) {
+                super.onDraw(canvas);
+                return;
+            }
+
+            float radius = dp(18);
+            buttonRect.set(0.5f, 0.5f, width - 0.5f, height - 0.5f);
+
+            fillPaint.setShader(new LinearGradient(
+                    0.0f,
+                    0.0f,
+                    0.0f,
+                    height,
+                    Color.argb(150, 30, 33, 48),
+                    Color.argb(125, 13, 16, 28),
+                    Shader.TileMode.CLAMP
+            ));
+            canvas.drawRoundRect(buttonRect, radius, radius, fillPaint);
+            fillPaint.setShader(null);
+
+            drawGloss(canvas, width, height, radius);
+
+            strokePaint.setColor(Color.argb(58, 255, 255, 255));
+            canvas.drawRoundRect(buttonRect, radius, radius, strokePaint);
+
+            super.onDraw(canvas);
+
+            if (shineRunning) {
+                postInvalidateDelayed(SHINE_FRAME_DELAY);
             }
         }
 
+        private void drawGloss(Canvas canvas, int width, int height, float radius) {
+            if (!shineRunning) {
+                return;
+            }
+
+            long now = System.currentTimeMillis();
+            float progress = ((now - shineStartTime) % SHINE_DURATION) / (float) SHINE_DURATION;
+            float shineWidth = Math.max(dp(38), width * 0.38f);
+            float start = -shineWidth * 2.0f;
+            float end = width + shineWidth * 2.0f;
+            float centerX = start + (end - start) * progress;
+
+            buttonPath.reset();
+            buttonPath.addRoundRect(buttonRect, radius, radius, Path.Direction.CW);
+
+            shinePaint.setShader(new LinearGradient(
+                    centerX - shineWidth,
+                    0.0f,
+                    centerX + shineWidth,
+                    height,
+                    new int[]{
+                            Color.argb(0, 255, 255, 255),
+                            Color.argb(22, 255, 255, 255),
+                            Color.argb(92, 255, 255, 255),
+                            Color.argb(22, 255, 255, 255),
+                            Color.argb(0, 255, 255, 255)
+                    },
+                    new float[]{0.0f, 0.36f, 0.5f, 0.64f, 1.0f},
+                    Shader.TileMode.CLAMP
+            ));
+
+            canvas.save();
+            canvas.clipPath(buttonPath);
+            canvas.rotate(-22.0f, centerX, height / 2.0f);
+            canvas.drawRect(centerX - shineWidth, -height, centerX + shineWidth, height * 2.0f, shinePaint);
+            canvas.restore();
+            shinePaint.setShader(null);
+        }
+
         @Override
-        public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-            surfaceReady = false;
-            stopRendererThread();
+        public boolean onTouchEvent(MotionEvent event) {
+            if (!isEnabled()) {
+                return false;
+            }
+
+            int action = event.getActionMasked();
+
+            if (action == MotionEvent.ACTION_DOWN) {
+                pressedInside = true;
+                animatePressedState(true);
+                return true;
+            }
+
+            if (action == MotionEvent.ACTION_MOVE) {
+                boolean inside = isTouchInside(event);
+                if (pressedInside != inside) {
+                    pressedInside = inside;
+                    animatePressedState(inside);
+                }
+                return true;
+            }
+
+            if (action == MotionEvent.ACTION_UP) {
+                boolean inside = pressedInside && isTouchInside(event);
+                pressedInside = false;
+                animatePressedState(false);
+
+                if (inside) {
+                    performClick();
+                }
+                return true;
+            }
+
+            if (action == MotionEvent.ACTION_CANCEL) {
+                pressedInside = false;
+                animatePressedState(false);
+                return true;
+            }
+
             return true;
         }
 
         @Override
-        public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+        public boolean performClick() {
+            super.performClick();
+            return true;
         }
 
-        private boolean isRendererPaused() {
-            return paused || !surfaceReady;
+        private boolean isTouchInside(MotionEvent event) {
+            float x = event.getX();
+            float y = event.getY();
+            return x >= 0.0f && x <= getWidth() && y >= 0.0f && y <= getHeight();
         }
 
-        private void stopRendererThread() {
-            RenderThread thread = renderThread;
+        private void animatePressedState(boolean pressed) {
+            float scale = pressed ? 0.94f : 1.0f;
+            float alpha = pressed ? 0.88f : 1.0f;
+
+            animate().cancel();
+            animate()
+                    .scaleX(scale)
+                    .scaleY(scale)
+                    .alpha(alpha)
+                    .setDuration(pressed ? 90L : 150L)
+                    .setInterpolator(new AccelerateDecelerateInterpolator())
+                    .start();
+        }
+    }
+
+
+    private class SmokeGLView extends TextureView implements TextureView.SurfaceTextureListener, Runnable {
+        private final FloatBuffer vertexBuffer;
+        private volatile boolean running;
+        private volatile boolean paused;
+        private Thread renderThread;
+        private SurfaceTexture renderSurfaceTexture;
+        private int surfaceWidth;
+        private int surfaceHeight;
+        private final float seed;
+
+        private EGLDisplay eglDisplay = EGL14.EGL_NO_DISPLAY;
+        private EGLContext eglContext = EGL14.EGL_NO_CONTEXT;
+        private EGLSurface eglSurface = EGL14.EGL_NO_SURFACE;
+
+        private int programHandle;
+        private int positionHandle;
+        private int resolutionHandle;
+        private int timeHandle;
+        private int alphaHandle;
+        private int seedHandle;
+
+        private static final long FRAME_DELAY_MS = 50L;
+
+        private final String vertexShaderCode =
+                "attribute vec2 aPosition;\n" +
+                "void main() {\n" +
+                "    gl_Position = vec4(aPosition, 0.0, 1.0);\n" +
+                "}\n";
+
+        private final String fragmentShaderCode =
+                "precision mediump float;\n" +
+                "uniform vec2 uResolution;\n" +
+                "uniform float uTime;\n" +
+                "uniform float uAlpha;\n" +
+                "uniform float uSeed;\n" +
+                "\n" +
+                "float blob(vec2 p, vec2 c, float r) {\n" +
+                "    float d = distance(p, c);\n" +
+                "    return smoothstep(r, 0.0, d);\n" +
+                "}\n" +
+                "\n" +
+                "void main() {\n" +
+                "    vec2 uv = gl_FragCoord.xy / max(uResolution.xy, vec2(1.0));\n" +
+                "    float aspect = uResolution.x / max(uResolution.y, 1.0);\n" +
+                "    vec2 p = vec2(uv.x * aspect, uv.y);\n" +
+                "    float t = uTime * 0.075;\n" +
+                "    float s = uSeed;\n" +
+                "\n" +
+                "    vec3 col = vec3(0.0);\n" +
+                "    float power = 0.0;\n" +
+                "\n" +
+                "    vec2 c1 = vec2((0.18 + 0.19 * sin(t * 1.37 + s * 0.11)) * aspect, 0.22 + 0.16 * cos(t * 1.03 + s));\n" +
+                "    vec2 c2 = vec2((0.82 + 0.15 * cos(t * 1.01 + s * 0.23)) * aspect, 0.24 + 0.14 * sin(t * 1.21 + s * 0.7));\n" +
+                "    vec2 c3 = vec2((0.32 + 0.18 * cos(t * 0.83 + s * 0.31)) * aspect, 0.74 + 0.15 * sin(t * 1.19 + s * 0.4));\n" +
+                "    vec2 c4 = vec2((0.72 + 0.20 * sin(t * 0.77 + s * 0.43)) * aspect, 0.67 + 0.18 * cos(t * 1.33 + s * 0.6));\n" +
+                "    vec2 c5 = vec2((0.50 + 0.26 * sin(t * 0.59 + s * 0.53)) * aspect, 0.48 + 0.21 * cos(t * 0.91 + s * 0.8));\n" +
+                "    vec2 c6 = vec2((0.08 + 0.14 * cos(t * 1.53 + s * 0.67)) * aspect, 0.82 + 0.11 * sin(t * 1.47 + s * 0.2));\n" +
+                "\n" +
+                "    float b1 = blob(p, c1, 0.38 + 0.04 * sin(t + s));\n" +
+                "    float b2 = blob(p, c2, 0.34 + 0.05 * cos(t * 1.2 + s));\n" +
+                "    float b3 = blob(p, c3, 0.42 + 0.04 * sin(t * 0.8 + s));\n" +
+                "    float b4 = blob(p, c4, 0.36 + 0.05 * cos(t * 0.9 + s));\n" +
+                "    float b5 = blob(p, c5, 0.44 + 0.05 * sin(t * 1.1 + s));\n" +
+                "    float b6 = blob(p, c6, 0.31 + 0.04 * cos(t * 1.4 + s));\n" +
+                "\n" +
+                "    col += vec3(0.00, 0.88, 1.00) * b1;\n" +
+                "    col += vec3(0.63, 0.28, 1.00) * b2;\n" +
+                "    col += vec3(1.00, 0.30, 0.78) * b3;\n" +
+                "    col += vec3(0.78, 0.56, 1.00) * b4;\n" +
+                "    col += vec3(1.00, 0.96, 1.00) * b5 * 0.75;\n" +
+                "    col += vec3(0.36, 0.78, 1.00) * b6;\n" +
+                "\n" +
+                "    power = b1 + b2 + b3 + b4 + b5 * 0.75 + b6;\n" +
+                "    vec3 finalColor = col / max(power, 0.001);\n" +
+                "    float alpha = clamp(power * 0.165, 0.0, 0.52) * uAlpha;\n" +
+                "\n" +
+                "    gl_FragColor = vec4(finalColor, alpha);\n" +
+                "}\n";
+
+        public SmokeGLView(Context context) {
+            super(context);
+            setOpaque(false);
+            setAlpha(0.86f);
+            setLayerType(View.LAYER_TYPE_HARDWARE, null);
+            setSurfaceTextureListener(this);
+
+            seed = (float) (Math.random() * 100.0);
+
+            float[] vertices = new float[] {
+                    -1.0f, -1.0f,
+                     1.0f, -1.0f,
+                    -1.0f,  1.0f,
+                     1.0f,  1.0f
+            };
+
+            ByteBuffer byteBuffer = ByteBuffer.allocateDirect(vertices.length * 4);
+            byteBuffer.order(ByteOrder.nativeOrder());
+            vertexBuffer = byteBuffer.asFloatBuffer();
+            vertexBuffer.put(vertices);
+            vertexBuffer.position(0);
+        }
+
+        public void pauseRendering() {
+            paused = true;
+        }
+
+        public void resumeRendering() {
+            paused = false;
+        }
+
+        @Override
+        protected void onWindowVisibilityChanged(int visibility) {
+            super.onWindowVisibilityChanged(visibility);
+            paused = visibility != View.VISIBLE;
+        }
+
+        public void stopRenderer() {
+            running = false;
+            Thread thread = renderThread;
             renderThread = null;
-            if (thread != null) {
-                thread.requestStop();
+
+            if (thread != null && thread != Thread.currentThread()) {
                 try {
-                    thread.join(450L);
+                    thread.join(350L);
                 } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
                 }
             }
         }
 
-        private static class RenderThread extends Thread {
-            private static final long FRAME_DELAY_MS = 50L;
+        @Override
+        public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
+            renderSurfaceTexture = surfaceTexture;
+            surfaceWidth = width;
+            surfaceHeight = height;
+            startRenderer();
+        }
 
-            private final SurfaceTexture surfaceTexture;
-            private final GpuSmokeTextureView owner;
-            private volatile boolean running = true;
-            private volatile int width;
-            private volatile int height;
-            private volatile float seed;
+        @Override
+        public void onSurfaceTextureSizeChanged(SurfaceTexture surfaceTexture, int width, int height) {
+            surfaceWidth = width;
+            surfaceHeight = height;
+        }
 
-            private EGLDisplay eglDisplay = EGL14.EGL_NO_DISPLAY;
-            private EGLContext eglContext = EGL14.EGL_NO_CONTEXT;
-            private EGLSurface eglSurface = EGL14.EGL_NO_SURFACE;
+        @Override
+        public boolean onSurfaceTextureDestroyed(SurfaceTexture surfaceTexture) {
+            stopRenderer();
+            renderSurfaceTexture = null;
+            return true;
+        }
 
-            private FloatBuffer vertexBuffer;
-            private int program = 0;
-            private int positionHandle = -1;
-            private int resolutionHandle = -1;
-            private int timeHandle = -1;
-            private int seedHandle = -1;
-            private long startTime;
+        @Override
+        public void onSurfaceTextureUpdated(SurfaceTexture surfaceTexture) {
+        }
 
-            RenderThread(SurfaceTexture texture, int w, int h, float s, GpuSmokeTextureView view) {
-                super("ridhoae303-gpu-smoke");
-                surfaceTexture = texture;
-                width = Math.max(1, w);
-                height = Math.max(1, h);
-                seed = s;
-                owner = view;
+        private void startRenderer() {
+            stopRenderer();
+
+            running = true;
+            paused = false;
+            renderThread = new Thread(this, "MainActivity-SmokeGL");
+            renderThread.start();
+        }
+
+        @Override
+        public void run() {
+            if (!initGl()) {
+                releaseGl();
+                return;
             }
 
-            void requestStop() {
-                running = false;
-                interrupt();
-            }
+            long startTime = System.nanoTime();
 
-            void wakeUp() {
-                interrupt();
-            }
+            while (running) {
+                if (paused) {
+                    sleepQuietly(120L);
+                    continue;
+                }
 
-            void setSurfaceSize(int w, int h) {
-                width = Math.max(1, w);
-                height = Math.max(1, h);
-            }
+                long frameStart = System.currentTimeMillis();
+                float time = (System.nanoTime() - startTime) / 1000000000.0f;
 
-            void setSceneSeed(float s) {
-                seed = s;
-            }
+                drawFrame(time);
 
-            @Override
-            public void run() {
-                try {
-                    if (!initEgl()) {
-                        return;
-                    }
-                    initGlObjects();
-                    startTime = System.currentTimeMillis();
-
-                    while (running) {
-                        if (owner == null || owner.isRendererPaused()) {
-                            safeSleep(120L);
-                            continue;
-                        }
-
-                        long frameStart = System.currentTimeMillis();
-                        drawFrame();
-                        EGL14.eglSwapBuffers(eglDisplay, eglSurface);
-
-                        long elapsed = System.currentTimeMillis() - frameStart;
-                        long sleep = FRAME_DELAY_MS - elapsed;
-                        if (sleep > 0L) {
-                            safeSleep(sleep);
-                        }
-                    }
-                } catch (Throwable ignored) {
-                } finally {
-                    releaseGlObjects();
-                    releaseEgl();
+                long elapsed = System.currentTimeMillis() - frameStart;
+                long delay = FRAME_DELAY_MS - elapsed;
+                if (delay > 0L) {
+                    sleepQuietly(delay);
                 }
             }
 
-            private void safeSleep(long millis) {
-                try {
-                    Thread.sleep(millis);
-                } catch (InterruptedException ignored) {
-                }
-            }
+            releaseGl();
+        }
 
-            private boolean initEgl() {
+        private boolean initGl() {
+            try {
+                SurfaceTexture texture = renderSurfaceTexture;
+                if (texture == null) {
+                    return false;
+                }
+
                 eglDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY);
                 if (eglDisplay == EGL14.EGL_NO_DISPLAY) {
                     return false;
@@ -823,197 +1108,284 @@ public class MainActivity extends Activity {
                     return false;
                 }
 
-                int[] configAttribs = {
+                int[] configAttribs = new int[] {
                         EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT,
                         EGL14.EGL_SURFACE_TYPE, EGL14.EGL_WINDOW_BIT,
                         EGL14.EGL_RED_SIZE, 8,
                         EGL14.EGL_GREEN_SIZE, 8,
                         EGL14.EGL_BLUE_SIZE, 8,
                         EGL14.EGL_ALPHA_SIZE, 8,
-                        EGL14.EGL_DEPTH_SIZE, 0,
-                        EGL14.EGL_STENCIL_SIZE, 0,
                         EGL14.EGL_NONE
                 };
 
                 EGLConfig[] configs = new EGLConfig[1];
                 int[] numConfigs = new int[1];
-                if (!EGL14.eglChooseConfig(eglDisplay, configAttribs, 0, configs, 0, 1, numConfigs, 0) || numConfigs[0] <= 0) {
+                if (!EGL14.eglChooseConfig(eglDisplay, configAttribs, 0, configs, 0, configs.length, numConfigs, 0)
+                        || numConfigs[0] <= 0) {
                     return false;
                 }
 
-                int[] contextAttribs = {
-                        EGL14.EGL_CONTEXT_CLIENT_VERSION, 2,
+                // --- Perubahan: coba OpenGL ES 3.0 dulu, fallback ke 2.0 ---
+                int[] contextAttribs3 = new int[] {
+                        EGL14.EGL_CONTEXT_CLIENT_VERSION, 3,
                         EGL14.EGL_NONE
                 };
-                eglContext = EGL14.eglCreateContext(eglDisplay, configs[0], EGL14.EGL_NO_CONTEXT, contextAttribs, 0);
+
+                eglContext = EGL14.eglCreateContext(
+                        eglDisplay,
+                        configs[0],
+                        EGL14.EGL_NO_CONTEXT,
+                        contextAttribs3,
+                        0
+                );
+
+                if (eglContext == EGL14.EGL_NO_CONTEXT) {
+                    // Fallback ke OpenGL ES 2.0
+                    int[] contextAttribs2 = new int[] {
+                            EGL14.EGL_CONTEXT_CLIENT_VERSION, 2,
+                            EGL14.EGL_NONE
+                    };
+                    eglContext = EGL14.eglCreateContext(
+                            eglDisplay,
+                            configs[0],
+                            EGL14.EGL_NO_CONTEXT,
+                            contextAttribs2,
+                            0
+                    );
+                }
+                // ---------------------------------------------------------
+
                 if (eglContext == EGL14.EGL_NO_CONTEXT) {
                     return false;
                 }
 
-                int[] surfaceAttribs = {
+                int[] surfaceAttribs = new int[] {
                         EGL14.EGL_NONE
                 };
-                eglSurface = EGL14.eglCreateWindowSurface(eglDisplay, configs[0], surfaceTexture, surfaceAttribs, 0);
+
+                eglSurface = EGL14.eglCreateWindowSurface(
+                        eglDisplay,
+                        configs[0],
+                        texture,
+                        surfaceAttribs,
+                        0
+                );
+
                 if (eglSurface == EGL14.EGL_NO_SURFACE) {
                     return false;
                 }
 
-                return EGL14.eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext);
-            }
+                if (!EGL14.eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext)) {
+                    return false;
+                }
 
-            private void initGlObjects() {
-                float[] vertices = {
-                        -1.0f, -1.0f,
-                         1.0f, -1.0f,
-                        -1.0f,  1.0f,
-                         1.0f,  1.0f
-                };
-                ByteBuffer bb = ByteBuffer.allocateDirect(vertices.length * 4);
-                bb.order(ByteOrder.nativeOrder());
-                vertexBuffer = bb.asFloatBuffer();
-                vertexBuffer.put(vertices);
-                vertexBuffer.position(0);
+                programHandle = createProgram(vertexShaderCode, fragmentShaderCode);
+                if (programHandle == 0) {
+                    return false;
+                }
 
-                String vertexShader =
-                        "attribute vec2 aPosition;\n" +
-                        "varying vec2 vUv;\n" +
-                        "void main() {\n" +
-                        "    vUv = aPosition * 0.5 + 0.5;\n" +
-                        "    gl_Position = vec4(aPosition, 0.0, 1.0);\n" +
-                        "}\n";
-
-                String fragmentShader =
-                        "precision mediump float;\n" +
-                        "varying vec2 vUv;\n" +
-                        "uniform vec2 uResolution;\n" +
-                        "uniform float uTime;\n" +
-                        "uniform float uSeed;\n" +
-                        "float blob(vec2 p, vec2 c, float r) {\n" +
-                        "    float d = distance(p, c);\n" +
-                        "    return smoothstep(r, 0.0, d);\n" +
-                        "}\n" +
-                        "void main() {\n" +
-                        "    float aspect = max(0.2, uResolution.x / max(1.0, uResolution.y));\n" +
-                        "    vec2 p = vUv;\n" +
-                        "    p.x = (p.x - 0.5) * aspect + 0.5;\n" +
-                        "    float t = uTime * 0.060 + uSeed * 0.013;\n" +
-                        "    vec3 col = vec3(0.0);\n" +
-                        "    float a = 0.0;\n" +
-                        "    vec2 c1 = vec2(0.22 + 0.14*sin(t*1.10), 0.28 + 0.10*cos(t*0.82));\n" +
-                        "    vec2 c2 = vec2(0.78 + 0.16*cos(t*0.77), 0.22 + 0.12*sin(t*1.03));\n" +
-                        "    vec2 c3 = vec2(0.42 + 0.18*sin(t*0.63), 0.76 + 0.11*cos(t*0.91));\n" +
-                        "    vec2 c4 = vec2(0.66 + 0.13*cos(t*1.31), 0.58 + 0.14*sin(t*0.69));\n" +
-                        "    vec2 c5 = vec2(0.14 + 0.11*sin(t*0.54), 0.82 + 0.12*cos(t*1.20));\n" +
-                        "    vec2 c6 = vec2(0.92 + 0.08*cos(t*0.98), 0.70 + 0.10*sin(t*0.73));\n" +
-                        "    float b1 = blob(p, c1, 0.62);\n" +
-                        "    float b2 = blob(p, c2, 0.56);\n" +
-                        "    float b3 = blob(p, c3, 0.68);\n" +
-                        "    float b4 = blob(p, c4, 0.58);\n" +
-                        "    float b5 = blob(p, c5, 0.54);\n" +
-                        "    float b6 = blob(p, c6, 0.50);\n" +
-                        "    col += vec3(0.00, 0.90, 1.00) * b1;\n" +
-                        "    col += vec3(0.62, 0.20, 1.00) * b2;\n" +
-                        "    col += vec3(1.00, 0.26, 0.82) * b3;\n" +
-                        "    col += vec3(0.82, 0.70, 1.00) * b4;\n" +
-                        "    col += vec3(0.24, 0.65, 1.00) * b5;\n" +
-                        "    col += vec3(1.00, 1.00, 1.00) * b6 * 0.55;\n" +
-                        "    a += b1 * 0.22 + b2 * 0.20 + b3 * 0.18 + b4 * 0.15 + b5 * 0.14 + b6 * 0.10;\n" +
-                        "    float mist = 0.5 + 0.5*sin((p.x*3.2 + p.y*2.3 + t*0.75) * 3.14159);\n" +
-                        "    col += vec3(0.55, 0.95, 1.00) * mist * 0.045;\n" +
-                        "    a += mist * 0.030;\n" +
-                        "    col = col / max(0.65, b1 + b2 + b3 + b4 + b5 + b6);\n" +
-                        "    a = clamp(a, 0.0, 0.42);\n" +
-                        "    gl_FragColor = vec4(col, a);\n" +
-                        "}\n";
-
-                int vs = compileShader(GLES20.GL_VERTEX_SHADER, vertexShader);
-                int fs = compileShader(GLES20.GL_FRAGMENT_SHADER, fragmentShader);
-                program = GLES20.glCreateProgram();
-                GLES20.glAttachShader(program, vs);
-                GLES20.glAttachShader(program, fs);
-                GLES20.glLinkProgram(program);
-                GLES20.glDeleteShader(vs);
-                GLES20.glDeleteShader(fs);
-
-                positionHandle = GLES20.glGetAttribLocation(program, "aPosition");
-                resolutionHandle = GLES20.glGetUniformLocation(program, "uResolution");
-                timeHandle = GLES20.glGetUniformLocation(program, "uTime");
-                seedHandle = GLES20.glGetUniformLocation(program, "uSeed");
+                positionHandle = GLES20.glGetAttribLocation(programHandle, "aPosition");
+                resolutionHandle = GLES20.glGetUniformLocation(programHandle, "uResolution");
+                timeHandle = GLES20.glGetUniformLocation(programHandle, "uTime");
+                alphaHandle = GLES20.glGetUniformLocation(programHandle, "uAlpha");
+                seedHandle = GLES20.glGetUniformLocation(programHandle, "uSeed");
 
                 GLES20.glDisable(GLES20.GL_DEPTH_TEST);
                 GLES20.glEnable(GLES20.GL_BLEND);
                 GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
-            }
-
-            private int compileShader(int type, String source) {
-                int shader = GLES20.glCreateShader(type);
-                GLES20.glShaderSource(shader, source);
-                GLES20.glCompileShader(shader);
-                return shader;
-            }
-
-            private void drawFrame() {
-                int w = Math.max(1, width);
-                int h = Math.max(1, height);
-                float seconds = (System.currentTimeMillis() - startTime) / 1000.0f;
-
-                GLES20.glViewport(0, 0, w, h);
                 GLES20.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-                GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
 
-                GLES20.glUseProgram(program);
-                GLES20.glUniform2f(resolutionHandle, (float) w, (float) h);
-                GLES20.glUniform1f(timeHandle, seconds);
-                GLES20.glUniform1f(seedHandle, seed);
+                return true;
+            } catch (Throwable e) {
+                return false;
+            }
+        }
 
-                vertexBuffer.position(0);
-                GLES20.glEnableVertexAttribArray(positionHandle);
-                GLES20.glVertexAttribPointer(positionHandle, 2, GLES20.GL_FLOAT, false, 0, vertexBuffer);
-                GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
-                GLES20.glDisableVertexAttribArray(positionHandle);
+        private void drawFrame(float time) {
+            int width = Math.max(1, surfaceWidth);
+            int height = Math.max(1, surfaceHeight);
+
+            GLES20.glViewport(0, 0, width, height);
+            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
+            GLES20.glUseProgram(programHandle);
+
+            vertexBuffer.position(0);
+            GLES20.glEnableVertexAttribArray(positionHandle);
+            GLES20.glVertexAttribPointer(positionHandle, 2, GLES20.GL_FLOAT, false, 0, vertexBuffer);
+
+            GLES20.glUniform2f(resolutionHandle, (float) width, (float) height);
+            GLES20.glUniform1f(timeHandle, time);
+            GLES20.glUniform1f(alphaHandle, 0.92f);
+            GLES20.glUniform1f(seedHandle, seed);
+
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+            GLES20.glDisableVertexAttribArray(positionHandle);
+
+            if (eglDisplay != EGL14.EGL_NO_DISPLAY && eglSurface != EGL14.EGL_NO_SURFACE) {
+                EGL14.eglSwapBuffers(eglDisplay, eglSurface);
+            }
+        }
+
+        private int createProgram(String vertexSource, String fragmentSource) {
+            int vertexShader = compileShader(GLES20.GL_VERTEX_SHADER, vertexSource);
+            int fragmentShader = compileShader(GLES20.GL_FRAGMENT_SHADER, fragmentSource);
+
+            if (vertexShader == 0 || fragmentShader == 0) {
+                return 0;
             }
 
-            private void releaseGlObjects() {
-                try {
-                    if (program != 0) {
-                        GLES20.glDeleteProgram(program);
-                        program = 0;
-                    }
-                } catch (Throwable ignored) {
-                }
+            int program = GLES20.glCreateProgram();
+            if (program == 0) {
+                return 0;
             }
 
-            private void releaseEgl() {
-                try {
-                    if (eglDisplay != EGL14.EGL_NO_DISPLAY) {
-                        EGL14.eglMakeCurrent(eglDisplay, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT);
-                        if (eglSurface != EGL14.EGL_NO_SURFACE) {
-                            EGL14.eglDestroySurface(eglDisplay, eglSurface);
-                        }
-                        if (eglContext != EGL14.EGL_NO_CONTEXT) {
-                            EGL14.eglDestroyContext(eglDisplay, eglContext);
-                        }
-                        EGL14.eglTerminate(eglDisplay);
+            GLES20.glAttachShader(program, vertexShader);
+            GLES20.glAttachShader(program, fragmentShader);
+            GLES20.glLinkProgram(program);
+
+            int[] linkStatus = new int[1];
+            GLES20.glGetProgramiv(program, GLES20.GL_LINK_STATUS, linkStatus, 0);
+            if (linkStatus[0] == 0) {
+                GLES20.glDeleteProgram(program);
+                program = 0;
+            }
+
+            GLES20.glDeleteShader(vertexShader);
+            GLES20.glDeleteShader(fragmentShader);
+
+            return program;
+        }
+
+        private int compileShader(int type, String shaderCode) {
+            int shader = GLES20.glCreateShader(type);
+            if (shader == 0) {
+                return 0;
+            }
+
+            GLES20.glShaderSource(shader, shaderCode);
+            GLES20.glCompileShader(shader);
+
+            int[] compiled = new int[1];
+            GLES20.glGetShaderiv(shader, GLES20.GL_COMPILE_STATUS, compiled, 0);
+            if (compiled[0] == 0) {
+                GLES20.glDeleteShader(shader);
+                shader = 0;
+            }
+
+            return shader;
+        }
+
+        private void releaseGl() {
+            try {
+                if (eglDisplay != EGL14.EGL_NO_DISPLAY) {
+                    EGL14.eglMakeCurrent(
+                            eglDisplay,
+                            EGL14.EGL_NO_SURFACE,
+                            EGL14.EGL_NO_SURFACE,
+                            EGL14.EGL_NO_CONTEXT
+                    );
+
+                    if (eglSurface != EGL14.EGL_NO_SURFACE) {
+                        EGL14.eglDestroySurface(eglDisplay, eglSurface);
                     }
-                } catch (Throwable ignored) {
+
+                    if (eglContext != EGL14.EGL_NO_CONTEXT) {
+                        EGL14.eglDestroyContext(eglDisplay, eglContext);
+                    }
+
+                    EGL14.eglTerminate(eglDisplay);
                 }
-                eglDisplay = EGL14.EGL_NO_DISPLAY;
-                eglSurface = EGL14.EGL_NO_SURFACE;
-                eglContext = EGL14.EGL_NO_CONTEXT;
+            } catch (Throwable ignored) {
+            }
+
+            eglDisplay = EGL14.EGL_NO_DISPLAY;
+            eglContext = EGL14.EGL_NO_CONTEXT;
+            eglSurface = EGL14.EGL_NO_SURFACE;
+            programHandle = 0;
+        }
+
+        private void sleepQuietly(long millis) {
+            try {
+                Thread.sleep(millis);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
             }
         }
     }
 
+    private class GradientOverlayView extends View {
+        private Paint gradientPaint;
+        private Paint vignettePaint;
+        private int lastWidth;
+        private int lastHeight;
+
+        public GradientOverlayView(Context context) {
+            super(context);
+            setWillNotDraw(false);
+
+            gradientPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            gradientPaint.setStyle(Paint.Style.FILL);
+
+            vignettePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            vignettePaint.setStyle(Paint.Style.FILL);
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+
+            int width = getWidth();
+            int height = getHeight();
+
+            if (width <= 0 || height <= 0) {
+                return;
+            }
+
+            if (width != lastWidth || height != lastHeight || gradientPaint.getShader() == null) {
+                lastWidth = width;
+                lastHeight = height;
+
+                gradientPaint.setShader(new LinearGradient(
+                        0.0f,
+                        0.0f,
+                        width,
+                        height,
+                        new int[] {
+                                Color.argb(22, 255, 120, 210),
+                                Color.argb(14, 120, 240, 255),
+                                Color.argb(18, 170, 120, 255),
+                                Color.argb(12, 255, 255, 255)
+                        },
+                        new float[] {0.0f, 0.36f, 0.72f, 1.0f},
+                        Shader.TileMode.CLAMP
+                ));
+
+                float radius = Math.max(width, height) * 0.78f;
+                vignettePaint.setShader(new RadialGradient(
+                        width / 2.0f,
+                        height / 2.0f,
+                        radius,
+                        Color.argb(0, 0, 0, 0),
+                        Color.argb(72, 0, 0, 0),
+                        Shader.TileMode.CLAMP
+                ));
+            }
+
+            canvas.drawRect(0, 0, width, height, gradientPaint);
+            canvas.drawRect(0, 0, width, height, vignettePaint);
+        }
+    }
+
     private class RainbowDrawingView extends View {
-        private class TouchTrail {
+        private  class TouchTrail {
             Path path;
             Paint paint;
             int colorIndex;
             long lastColorChange;
-            ArrayList<SparkleParticle> sparkleParticles = new ArrayList<SparkleParticle>();
-            ArrayList<SmokeParticle> smokeParticles = new ArrayList<SmokeParticle>();
-            ArrayList<GlowParticle> glowParticles = new ArrayList<GlowParticle>();
-            ArrayList<SpectralParticle> spectralParticles = new ArrayList<SpectralParticle>();
+            ArrayList<SparkleParticle> sparkleParticles = new ArrayList<>();
+            ArrayList<SmokeParticle> smokeParticles = new ArrayList<>();
+            ArrayList<GlowParticle> glowParticles = new ArrayList<>();
+            ArrayList<SpectralParticle> spectralParticles = new ArrayList<>();
             float lastX, lastY;
             boolean isActive = true;
             int fadeAlpha = 255;
@@ -1025,28 +1397,28 @@ public class MainActivity extends Activity {
             boolean isColorTransitioning = false;
         }
 
-        private class SmokeParticle {
+        private  class SmokeParticle {
             float x, y, size;
             int alpha, color;
             float dx, dy;
             long creationTime;
         }
 
-        private class SparkleParticle {
+        private  class SparkleParticle {
             float x, y, size;
             int alpha, color;
             float speed, angle;
             long creationTime;
         }
 
-        private class GlowParticle {
+        private  class GlowParticle {
             float x, y, size;
             int alpha, color;
             long creationTime;
             float lifeTime;
         }
 
-        private class SpectralParticle {
+        private  class SpectralParticle {
             float x, y, size;
             int alpha, color;
             float speed, angle;
@@ -1054,7 +1426,7 @@ public class MainActivity extends Activity {
             float lifeTime;
         }
 
-        private class Bubble {
+        private  class Bubble {
             float x, y;
             float size;
             int color;
@@ -1068,7 +1440,7 @@ public class MainActivity extends Activity {
             boolean isIdle;
         }
 
-        private class FreeSparkle {
+        private  class FreeSparkle {
             float x, y, size;
             int alpha, color;
             float speed, angle;
@@ -1076,7 +1448,7 @@ public class MainActivity extends Activity {
             float lifeTime;
         }
 
-        private class FreeSmoke {
+        private  class FreeSmoke {
             float x, y, size;
             int alpha, color;
             float dx, dy;
@@ -1084,7 +1456,7 @@ public class MainActivity extends Activity {
             float lifeTime;
         }
 
-        private class Ripple {
+        private  class Ripple {
             float x, y;
             float radius;
             float maxRadius;
@@ -1092,12 +1464,12 @@ public class MainActivity extends Activity {
             long creationTime;
         }
 
-        private final SparseArray<TouchTrail> activeTrails = new SparseArray<TouchTrail>();
-        private final ArrayList<TouchTrail> fadingTrails = new ArrayList<TouchTrail>();
-        private final ArrayList<Bubble> bubbles = new ArrayList<Bubble>();
-        private final ArrayList<FreeSparkle> freeSparkles = new ArrayList<FreeSparkle>();
-        private final ArrayList<FreeSmoke> freeSmokes = new ArrayList<FreeSmoke>();
-        private final ArrayList<Ripple> ripples = new ArrayList<Ripple>();
+        private final SparseArray<TouchTrail> activeTrails = new SparseArray<>();
+        private final ArrayList<TouchTrail> fadingTrails = new ArrayList<>();
+        private final ArrayList<Bubble> bubbles = new ArrayList<>();
+        private final ArrayList<FreeSparkle> freeSparkles = new ArrayList<>();
+        private final ArrayList<FreeSmoke> freeSmokes = new ArrayList<>();
+        private final ArrayList<Ripple> ripples = new ArrayList<>();
         private final Random random = new Random();
 
         private final Paint smokePaint = new Paint();
@@ -1110,38 +1482,38 @@ public class MainActivity extends Activity {
         private final Paint trailGlowPaint = new Paint();
 
         private final int[] rainbowColors = {
-                Color.rgb(255, 80, 80),
-                Color.rgb(255, 120, 90),
-                Color.rgb(255, 160, 80),
-                Color.rgb(255, 200, 80),
-                Color.rgb(255, 230, 120),
-                Color.rgb(180, 255, 120),
-                Color.rgb(120, 255, 140),
-                Color.rgb(80, 255, 180),
-                Color.rgb(80, 255, 220),
-                Color.rgb(80, 220, 255),
-                Color.rgb(80, 180, 255),
-                Color.rgb(100, 140, 255),
-                Color.rgb(120, 120, 255),
-                Color.rgb(150, 100, 255),
-                Color.rgb(180, 90, 255),
-                Color.rgb(210, 90, 255),
-                Color.rgb(255, 90, 255),
-                Color.rgb(255, 100, 220),
-                Color.rgb(255, 120, 180),
-                Color.rgb(255, 140, 160),
-                Color.rgb(255, 180, 200),
-                Color.rgb(255, 220, 240),
-                Color.rgb(180, 240, 255),
-                Color.rgb(220, 180, 255),
-                Color.rgb(255, 255, 255)
+            Color.rgb(255, 80, 80),
+            Color.rgb(255, 120, 90),
+            Color.rgb(255, 160, 80),
+            Color.rgb(255, 200, 80),
+            Color.rgb(255, 230, 120),
+            Color.rgb(180, 255, 120),
+            Color.rgb(120, 255, 140),
+            Color.rgb(80, 255, 180),
+            Color.rgb(80, 255, 220),
+            Color.rgb(80, 220, 255),
+            Color.rgb(80, 180, 255),
+            Color.rgb(100, 140, 255),
+            Color.rgb(120, 120, 255),
+            Color.rgb(150, 100, 255),
+            Color.rgb(180, 90, 255),
+            Color.rgb(210, 90, 255),
+            Color.rgb(255, 90, 255),
+            Color.rgb(255, 100, 220),
+            Color.rgb(255, 120, 180),
+            Color.rgb(255, 140, 160),
+            Color.rgb(255, 180, 200),
+            Color.rgb(255, 220, 240),
+            Color.rgb(180, 240, 255),
+            Color.rgb(220, 180, 255),
+            Color.rgb(255, 255, 255)
         };
 
         private final int[] sparkleColors = {
-                Color.WHITE,
-                Color.rgb(255, 255, 200),
-                Color.rgb(200, 255, 255),
-                Color.rgb(255, 200, 255)
+            Color.WHITE,
+            Color.rgb(255, 255, 200),
+            Color.rgb(200, 255, 255),
+            Color.rgb(255, 200, 255)
         };
 
         private long lastUpdateTime;
@@ -1296,7 +1668,7 @@ public class MainActivity extends Activity {
             if (bubbles.size() >= MAX_BUBBLES) return;
 
             Bubble b = new Bubble();
-            b.x = 50 + random.nextFloat() * Math.max(1, getWidth() - 100);
+            b.x = 50 + random.nextFloat() * (getWidth() - 100);
             b.y = getHeight() + 30;
             b.size = 12 + random.nextFloat() * 18;
             b.color = rainbowColors[random.nextInt(rainbowColors.length)];
@@ -1886,16 +2258,31 @@ public class MainActivity extends Activity {
         showToast("Tap back again to exit");
     }
 
+
+    @Override
+    protected void onPause() {
+        if (smokeBackgroundView != null) {
+            smokeBackgroundView.pauseRendering();
+        }
+        super.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (smokeBackgroundView != null) {
+            smokeBackgroundView.resumeRendering();
+        }
+    }
+
     @Override
     protected void onDestroy() {
         try {
-            if (smokeTextureView != null) {
-                smokeTextureView.pauseRenderer();
+            if (smokeBackgroundView != null) {
+                smokeBackgroundView.stopRenderer();
+                smokeBackgroundView = null;
             }
-        } catch (Throwable ignored) {
-        }
 
-        try {
             if (wallpaperLayer != null) {
                 for (int i = 0; i < wallpaperLayer.getChildCount(); i++) {
                     View child = wallpaperLayer.getChildAt(i);
