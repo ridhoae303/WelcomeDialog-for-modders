@@ -20,7 +20,7 @@ It is also the author's first GitHub repository.
   <strong>Please see the preview dialog.</strong>
 </p>
 
-https://github.com/user-attachments/assets/c714c98e-8558-45be-9d23-bfbcadc259b5
+https://github.com/user-attachments/assets/d6b35bbc-aca7-41cc-a807-6c5dc48d0391
 
 <p align="center">
   <em>The video frame rate has been reduced to make the video appear choppy in order to minimize the impact on video preview performance.</em>
