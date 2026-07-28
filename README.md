@@ -51,34 +51,6 @@ It does not promise perfection, but it is designed with clear intent.
 
 ## New Stuff Added
 
-### GPU Animated RGB Smoke Background
-
-`MainActivity.java` now supports a soft animated RGB smoke background using **OpenGL ES 2.0**.
-
-Instead of generating a heavy blurred wallpaper on the CPU, the ambient background effect is rendered through the GPU.  
-This helps reduce startup delay and keeps the app from sitting on a black screen while the CPU is busy processing pixels.
-
-The effect is designed to feel:
-
-- Soft
-- Colorful
-- Neon-like
-- Smooth
-- Random-looking
-- Friendly for cyan, purple, pink, white, and RGB-style themes
-
-### No More Heavy CPU Wallpaper Blur
-
-The old CPU-based wallpaper blur has been removed.
-
-The app no longer needs to create an extra blurred bitmap from the wallpaper, which means:
-
-- Less CPU work
-- Less RAM pressure
-- Faster startup
-- Lower chance of lag on weaker phones
-- Cleaner background handling
-
 ### Fullscreen Wallpaper Handling
 
 Wallpaper rendering is now made to fill the Activity area properly.
