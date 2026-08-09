@@ -259,7 +259,7 @@ This project is licensed under the GNU General Public License v3.
 
 <p align="center">
   <a href="https://github.com/ridhoae303">
-    <img src="https://img.shields.io/badge/Built%20by-@ridhoae303-111111?style=for-the-badge&logo=github">
+    <img src="https://img.shields.io/badge/Built%20by-@ridhoae303-0969DA?style=for-the-badge&logo=github&logoColor=white">
   </a>
 </p>
 
