@@ -1784,7 +1784,7 @@ public class MainActivity extends Activity {
                 sparklePaint.setColor(adjustColorAlpha(p.color, alpha));
                 canvas.drawCircle(p.x, p.y, p.size * (1 - progress * 0.5f), sparklePaint);
                 p.x += Math.cos(p.angle) * p.speed * deltaTime * 60;
-                p.y += Math.sin(p.angle) * p.speed * deltaTime * 60;
+                p.y = p.y + (float) (Math.sin(p.angle) * p.speed * deltaTime * 60);
             }
         }
 
