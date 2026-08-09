@@ -251,7 +251,7 @@ This project is licensed under the GNU General Public License v3.
 
 <p align="center">
   <a href="LICENSE">
-    <img src="https://img.shields.io/badge/License-GPLv3%20-purple.svg" alt="License">
+    <img src="https://img.shields.io/badge/License-GPLv3%20-cyan.svg" alt="License">
   </a>
 </p>
 
