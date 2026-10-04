@@ -141,9 +141,9 @@ Some issues that have been addressed:
 - Removed expensive CPU wallpaper blur
 - Improved wallpaper resource cleanup
 - Improved background rendering lifecycle handling
-- **Fixed logo quality degradation during zoom animation** (v1.0.4)
-- **Fixed "FROZEN" text getting chopped off** (v1.0.4)
-- **Fixed low-DPI and landscape layout issues** (v1.0.4)
+- **Fixed logo quality degradation during zoom animation** (v1.0.6)
+- **Fixed "FROZEN" text getting chopped off** (v1.0.6)
+- **Fixed low-DPI and landscape layout issues** (v1.0.6)
 
 ## Features Added
 
