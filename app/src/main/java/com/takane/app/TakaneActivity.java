@@ -106,8 +106,13 @@ public class TakaneActivity extends Activity {
     private MediaPlayer bannerVideoPlayer;
     private Movie bannerGifMovie;
     
-    // Single instance enforcement
+    // Single instance / per-process startup enforcement
+    // isDialogActive protects the currently visible dialog instance.
+    // hasShownThisProcess is intentionally separate from "Don't show again":
+    // it prevents the startup dialog from being launched again during the
+    // same app process, while still allowing it to appear on the next launch.
     private static boolean isDialogActive = false;
+    private static boolean hasShownThisProcess = false;
     
     // SharedPreferences keys for persistence
     private static final String PREF_NAME = "app_pref";
@@ -717,21 +722,9 @@ public class TakaneActivity extends Activity {
         loadCustomFont();
         
         // Setup window flags
-        getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        configureFullscreenWindow();
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE, 
                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS, 
-                           WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
-        
-        getWindow().getDecorView().setSystemUiVisibility(
-            View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
-            View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-            View.SYSTEM_UI_FLAG_FULLSCREEN);
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            getWindow().setStatusBarColor(Color.TRANSPARENT);
-            getWindow().setNavigationBarColor(Color.BLACK);
-        }
         
         // Setup root layout
         rootLayout = new RelativeLayout(this);
@@ -740,6 +733,7 @@ public class TakaneActivity extends Activity {
             ViewGroup.LayoutParams.MATCH_PARENT
         ));
         rootLayout.setBackgroundColor(Color.TRANSPARENT);
+        rootLayout.setFitsSystemWindows(false);
         rootLayout.setClipChildren(true);
         
         // Add invisible view to ensure layout is measured
@@ -759,6 +753,43 @@ public class TakaneActivity extends Activity {
         });
     }
     
+    /**
+     * Configure the dialog window to occupy the full display area, including
+     * the status-bar/cutout region. This prevents a thin uncovered strip
+     * above the dim background on newer Android versions.
+     */
+    private void configureFullscreenWindow() {
+        Window window = getWindow();
+        window.setBackgroundDrawableResource(android.R.color.transparent);
+        window.setFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+
+        int systemUiFlags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_FULLSCREEN;
+        window.getDecorView().setSystemUiVisibility(systemUiFlags);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            window.setStatusBarColor(Color.TRANSPARENT);
+            window.setNavigationBarColor(Color.BLACK);
+        }
+
+        // Android 11+ can otherwise apply system-window insets to the content
+        // area, leaving the top of the overlay uncovered.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(false);
+        }
+
+        // Also allow drawing into the display cutout area when present.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            WindowManager.LayoutParams params = window.getAttributes();
+            params.layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            window.setAttributes(params);
+        }
+    }
+
     private void initializeDialog() {
         // Re-enable touch
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
@@ -2880,14 +2911,33 @@ public class TakaneActivity extends Activity {
      * Public entry point to show the dialog.
      * Renamed from atsuko to Niyaniya as requested.
      */
-    public static void Niyaniya(Context context) {
+    public static synchronized void Niyaniya(Context context) {
+        if (context == null) {
+            return;
+        }
+
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         boolean dontShow = prefs.getBoolean(DONT_SHOW_KEY, false);
-        
-        if (!dontShow) {
-            Intent intent = new Intent(context, TakaneActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+        // Keep this guard separate from "Don't show again".
+        // - dontShow: persistent user preference across launches.
+        // - hasShownThisProcess: startup-only guard for the current app process.
+        if (dontShow || hasShownThisProcess || isDialogActive) {
+            return;
+        }
+
+        Intent intent = new Intent(context, TakaneActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+        try {
+            // Set before launching so repeated calls from multiple Activities
+            // cannot race into multiple dialog launches.
+            hasShownThisProcess = true;
             context.startActivity(intent);
+        } catch (RuntimeException e) {
+            // Allow a retry if Android rejected the launch.
+            hasShownThisProcess = false;
+            throw e;
         }
     }
     
